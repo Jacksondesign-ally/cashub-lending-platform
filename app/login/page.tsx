@@ -34,7 +34,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [envOk, setEnvOk] = useState<boolean | null>(null)
-  const [acceptedTerms, setAcceptedTerms] = useState(true)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [loginMode, setLoginMode] = useState<'super_admin' | 'lender' | 'borrower'>('lender')
   const [currentSlide, setCurrentSlide] = useState(0)
   const [SLIDE_IMAGES, setSlideImages] = useState(DEFAULT_SLIDES)
