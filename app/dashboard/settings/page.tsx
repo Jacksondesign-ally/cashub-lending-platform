@@ -103,14 +103,14 @@ export default function SettingsPage() {
       } else {
         // Fallback demo data
         setAdminUsers([
-          { id: '1', email: 'admin@cashub.com', full_name: 'Super Admin', phone: '+264 61 123456', role: 'super_admin', is_active: true, created_at: '2024-01-01' },
+          { id: '1', email: 'support@cashub.com', full_name: 'Super Admin', phone: '+264 61 123456', role: 'super_admin', is_active: true, created_at: '2024-01-01' },
           { id: '2', email: 'officer@cashub.com', full_name: 'Loan Officer', phone: '+264 81 234567', role: 'loan_officer', is_active: true, created_at: '2024-01-10' },
           { id: '3', email: 'lender@company.com', full_name: 'Lender Admin', phone: '+264 81 345678', role: 'lender_admin', is_active: true, created_at: '2024-01-15' },
         ])
       }
     } catch {
       setAdminUsers([
-        { id: '1', email: 'admin@cashub.com', full_name: 'Super Admin', phone: '+264 61 123456', role: 'super_admin', is_active: true, created_at: '2024-01-01' },
+        { id: '1', email: 'support@cashub.com', full_name: 'Super Admin', phone: '+264 61 123456', role: 'super_admin', is_active: true, created_at: '2024-01-01' },
         { id: '2', email: 'officer@cashub.com', full_name: 'Loan Officer', phone: '+264 81 234567', role: 'loan_officer', is_active: true, created_at: '2024-01-10' },
       ])
     } finally {
@@ -209,7 +209,7 @@ export default function SettingsPage() {
   // Platform configuration defaults
   const [generalSettings, setGeneralSettings] = useState({
     platformName: 'CasHuB',
-    platformEmail: 'admin@cashub.com',
+    platformEmail: 'support@cashub.com',
     platformPhone: '+264 61 123456',
     defaultCurrency: 'NAD',
     timezone: 'Africa/Windhoek',
@@ -726,7 +726,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-neutral-600">admin@cashub.com</span>
+                        <span className="text-neutral-600">support@cashub.com</span>
                         <span className="text-green-600">Success - 2 hours ago</span>
                       </div>
                       <div className="flex justify-between">

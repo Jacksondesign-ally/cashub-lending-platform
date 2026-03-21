@@ -392,7 +392,7 @@ export default function Login() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="appearance-none block w-full pl-10 pr-3 py-2 border border-neutral-300 rounded-lg placeholder-neutral-400 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-cashub-500 focus:border-cashub-500 transition-colors text-sm"
-                    placeholder={loginMode === 'super_admin' ? 'admin@cashub.com' : loginMode === 'lender' ? 'lender@company.com' : 'borrower@email.com'}
+                    placeholder={loginMode === 'super_admin' ? 'Enter admin email' : loginMode === 'lender' ? 'Enter lender email' : 'Enter borrower email'}
                   />
                 </div>
               </div>
