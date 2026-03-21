@@ -1,0 +1,25 @@
+tenants
+- id (uuid)
+- company_name
+- registration_number
+- country
+- license_number
+- regulator_status
+- status (pending, active, suspended, rejected)
+- plan_id
+- created_at
+
+tenant_branches
+- id
+- tenant_id
+- branch_name
+- location
+- status
+
+tenant_users
+- id
+- tenant_id
+- user_id
+- branch_id (nullable)
+- job_title
+- status
