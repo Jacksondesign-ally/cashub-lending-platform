@@ -121,7 +121,7 @@ const inconsistencies: AuditItem[] = [
   { id: 'INC-11', title: 'Download PDF Not Implemented', issue: '"Download PDF" button renders but has no onClick handler — it does nothing.', fix: 'Implement with jspdf or @react-pdf/renderer.', status: 'pending' },
   { id: 'INC-12', title: 'Billing Plan Changes Are UI Stubs', issue: 'Plan upgrade/downgrade buttons exist but no payment gateway or subscription update logic is connected.', fix: 'Integrate a payment provider or clearly mark as "Contact support to change plan."', status: 'pending' },
   { id: 'INC-13', title: 'No Pagination Anywhere', issue: 'Every data fetch loads all records at once — will cause performance issues with hundreds of records.', fix: 'Implement cursor-based or offset pagination with page size of 20-50 records.', status: 'pending' },
-  { id: 'INC-14', title: 'Silent Error Handling (Empty Catch Blocks)', issue: '20+ instances of catch {} or catch (err) { console.error('[CasHuB Error]', err); setX([]) } with no error logging or user feedback.', fix: 'At minimum, console.error all caught errors. Show toast notifications for user-facing failures.', status: 'pending' },
+  { id: 'INC-14', title: 'Silent Error Handling (Empty Catch Blocks)', issue: '20+ instances of empty catch blocks with no error logging or user feedback.', fix: 'console.error all caught errors. Show toast notifications for user-facing failures.', status: 'fixed' },
   { id: 'INC-15', title: 'Notifications Tab is Empty', issue: 'The "Notifications" tab appears in the borrower tab bar but has no implementation.', fix: 'Implement or remove from the tab list.', status: 'fixed' },
   { id: 'INC-16', title: 'Borrower Portal is a Single 1549-Line File', issue: 'All 11 tabs are in one massive component with 30+ state variables — very difficult to maintain.', fix: 'Split into sub-pages using Next.js file-based routing.', status: 'pending' },
   { id: 'INC-17', title: 'Stale localStorage Cache for Lender Info', issue: 'If lenderCompany, lenderLogo, lenderId change in the database, the cached values remain stale until next login.', fix: 'Refresh from Supabase on layout mount, or use React Context with periodic sync.', status: 'pending' },
@@ -317,6 +317,7 @@ export default function AuditReportsPage() {
     </div>
   )
 }
+
 
 
 
