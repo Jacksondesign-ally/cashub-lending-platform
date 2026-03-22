@@ -81,7 +81,7 @@ export default function NotificationsPage() {
     try {
       const notifs = await generateNotificationsFromData()
       setNotifications(notifs)
-    } catch { setNotifications([]) }
+    } catch (err) { console.error('[CasHuB Error]', err); setNotifications([]) }
     setLoading(false)
   }
 
@@ -186,3 +186,4 @@ export default function NotificationsPage() {
     </div>
   )
 }
+

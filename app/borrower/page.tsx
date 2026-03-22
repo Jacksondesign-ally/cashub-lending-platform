@@ -353,7 +353,7 @@ export default function BorrowerPortalPage() {
       const { data: activeLoans } = await supabase.from('loans').select('id, status, principal_amount').eq('status', 'active').or(`borrower_id.eq.${borrowerIdForDebt},borrower_email.eq.${userEmail}`)
       const hasActiveDebt = activeLoans && activeLoans.length > 0
       update('activedebt', hasActiveDebt ? 'warn' : 'pass', hasActiveDebt ? `${activeLoans.length} active loan(s) — N$ ${activeLoans.reduce((s: number, l: any) => s + (l.principal_amount || 0), 0).toLocaleString()} outstanding` : 'No active loans')
-    } catch { setCheckResults(prev => prev.map(c => c.status === 'checking' ? { ...c, status: 'warn', detail: 'Could not verify' } : c)) }
+    } catch (err) { console.error('[CasHuB Error]', err); setCheckResults(prev => prev.map(c => c.status === 'checking' ? { ...c, status: 'warn', detail: 'Could not verify' } : c)) }
     setChecksRunning(false)
     setChecksComplete(true)
   }
@@ -1555,4 +1555,5 @@ function ProfileField({ icon: Icon, label, value }: { icon: React.ComponentType<
     </div>
   )
 }
+
 

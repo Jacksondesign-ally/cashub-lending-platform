@@ -45,7 +45,7 @@ export default function LenderBlacklistPage() {
       ])
       setBorrowers(bData || [])
       setEntries(blData || [])
-    } catch { setEntries([]) }
+    } catch (err) { console.error('[CasHuB Error]', err); setEntries([]) }
     setLoading(false)
   }
 
@@ -183,3 +183,4 @@ export default function LenderBlacklistPage() {
     </div>
   )
 }
+

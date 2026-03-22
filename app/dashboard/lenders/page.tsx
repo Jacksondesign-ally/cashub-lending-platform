@@ -38,7 +38,7 @@ export default function LendersPage() {
       const { data, error } = await supabase.from('lenders').select('*').order('created_at', { ascending: false })
       if (!error && data) setLenders(data)
       else setLenders([])
-    } catch { setLenders([]) }
+    } catch (err) { console.error('[CasHuB Error]', err); setLenders([]) }
     setLoading(false)
   }
 
@@ -186,3 +186,4 @@ export default function LendersPage() {
     </div>
   )
 }
+

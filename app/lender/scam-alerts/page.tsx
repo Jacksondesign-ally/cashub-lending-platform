@@ -38,7 +38,7 @@ export default function LenderScamAlertsPage() {
         .eq('submitted_by', lenderEmail)
         .order('created_at', { ascending: false })
       setAlerts(data || [])
-    } catch { setAlerts([]) }
+    } catch (err) { console.error('[CasHuB Error]', err); setAlerts([]) }
     setLoading(false)
   }
 
@@ -187,3 +187,4 @@ export default function LenderScamAlertsPage() {
     </div>
   )
 }
+

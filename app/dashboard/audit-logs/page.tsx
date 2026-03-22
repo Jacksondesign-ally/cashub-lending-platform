@@ -52,7 +52,7 @@ export default function AuditLogsPage() {
       const { data, count, error } = await query
       if (!error && data) { setLogs(data); setTotal(count || 0) }
       else setLogs([])
-    } catch { setLogs([]) }
+    } catch (err) { console.error('[CasHuB Error]', err); setLogs([]) }
     setLoading(false)
   }
 
@@ -172,3 +172,4 @@ CREATE POLICY "audit_logs_auth" ON audit_logs FOR ALL TO authenticated USING (tr
     </div>
   )
 }
+

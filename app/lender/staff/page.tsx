@@ -39,7 +39,7 @@ export default function LenderStaffPage() {
       if (lenderId) query = query.eq('lender_id', lenderId)
       const { data } = await query
       setStaff(data || [])
-    } catch { setStaff([]) }
+    } catch (err) { console.error('[CasHuB Error]', err); setStaff([]) }
     setLoading(false)
   }
 
@@ -184,3 +184,4 @@ export default function LenderStaffPage() {
     </div>
   )
 }
+

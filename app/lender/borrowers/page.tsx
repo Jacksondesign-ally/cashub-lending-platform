@@ -49,7 +49,7 @@ export default function LenderBorrowersPage() {
       const { data, error } = await query
       if (!error && data) setBorrowers(data)
       else setBorrowers([])
-    } catch { setBorrowers([]) }
+    } catch (err) { console.error('[CasHuB Error]', err); setBorrowers([]) }
     setLoading(false)
   }
 
@@ -216,3 +216,4 @@ export default function LenderBorrowersPage() {
     </div>
   )
 }
+

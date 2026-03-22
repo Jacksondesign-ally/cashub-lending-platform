@@ -54,7 +54,7 @@ export default function DisputesPage() {
           lenders: d.borrower_blacklist?.lenders,
         })))
       } else setDisputes([])
-    } catch { setDisputes([]) }
+    } catch (err) { console.error('[CasHuB Error]', err); setDisputes([]) }
     setLoading(false)
   }
 
@@ -236,3 +236,4 @@ export default function DisputesPage() {
     </div>
   )
 }
+

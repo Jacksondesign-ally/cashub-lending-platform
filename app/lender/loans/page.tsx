@@ -79,7 +79,7 @@ export default function LenderLoansPage() {
         console.warn('No lenderId found in localStorage — cannot fetch loans')
         setLoans([])
       }
-    } catch { setLoans([]) }
+    } catch (err) { console.error('[CasHuB Error]', err); setLoans([]) }
     setLoading(false)
   }
 
@@ -216,3 +216,4 @@ export default function LenderLoansPage() {
     </div>
   )
 }
+

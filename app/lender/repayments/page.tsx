@@ -48,7 +48,7 @@ export default function LenderRepaymentsPage() {
       if (lenderId) bQuery = bQuery.eq('lender_id', lenderId)
       const { data: bData } = await bQuery
       setBorrowers(bData || [])
-    } catch { setPayments([]) }
+    } catch (err) { console.error('[CasHuB Error]', err); setPayments([]) }
     setLoading(false)
   }
 
@@ -205,3 +205,4 @@ export default function LenderRepaymentsPage() {
     </div>
   )
 }
+

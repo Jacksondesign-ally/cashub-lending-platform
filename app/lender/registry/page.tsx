@@ -115,7 +115,7 @@ export default function LenderRegistryPage() {
         }))
 
       setResults([...borrowerResults, ...blacklistOnlyResults])
-    } catch { setResults([]) }
+    } catch (err) { console.error('[CasHuB Error]', err); setResults([]) }
     setLoading(false)
   }
 
@@ -339,3 +339,4 @@ export default function LenderRegistryPage() {
     </div>
   )
 }
+

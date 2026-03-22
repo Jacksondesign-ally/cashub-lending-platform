@@ -58,7 +58,7 @@ export default function LenderApplicationsPage() {
       const { data, error } = await query
       if (!error && data) setApps(data)
       else setApps([])
-    } catch { setApps([]) }
+    } catch (err) { console.error('[CasHuB Error]', err); setApps([]) }
     setLoading(false)
   }
 
@@ -311,3 +311,4 @@ export default function LenderApplicationsPage() {
     </div>
   )
 }
+

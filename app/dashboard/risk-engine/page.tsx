@@ -79,7 +79,7 @@ export default function RiskEnginePage() {
       })
 
       setBorrowers(enriched)
-    } catch { setBorrowers([]) }
+    } catch (err) { console.error('[CasHuB Error]', err); setBorrowers([]) }
     setLoading(false)
   }
 
@@ -239,3 +239,4 @@ export default function RiskEnginePage() {
     </div>
   )
 }
+
