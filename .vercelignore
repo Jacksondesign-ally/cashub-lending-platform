@@ -1,0 +1,14 @@
+imported_system/
+*.sql
+*.txt
+*.png
+*.jpg
+*.webp
+AUDIT_REPORT.md
+mermaid-diagram*
+slide1.jpg.png
+slide2.jpg.webp
+slide3.jpg.webp
+slide4.jpg.png
+slide5.jpg.png
+logo.casHuB.png
