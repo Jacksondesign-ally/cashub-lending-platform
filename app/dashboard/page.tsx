@@ -30,7 +30,7 @@ type Loan = {
 type Stat = {
   title: string
   value: string
-  change: string
+  change?: string
   changeType: 'positive' | 'negative'
   icon: any
   color: string
@@ -461,4 +461,5 @@ export default function Dashboard() {
     </>
   )
 }
+
 
