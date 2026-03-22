@@ -39,10 +39,6 @@ export default function LenderBillingPage() {
 
   const handleUpgrade = (planId: string) => {
     alert('To change your subscription plan, please contact support at support@cashub.com or call +264 61 123 4567')
-  }, { onConflict: 'lender_id' })
-      setCurrentPlan(planId)
-    }
-    setUpgrading('')
   }
 
   if (loading) return <div className="flex items-center justify-center h-64"><RefreshCw className="w-6 h-6 animate-spin text-cashub-600" /></div>
@@ -153,4 +149,5 @@ export default function LenderBillingPage() {
     </div>
   )
 }
+
 
