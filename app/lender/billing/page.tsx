@@ -37,11 +37,9 @@ export default function LenderBillingPage() {
     setLoading(false)
   }, [])
 
-  const handleUpgrade = async (planId: string) => {
-    setUpgrading(planId)
-    const lenderId = localStorage.getItem('lenderId')
-    if (lenderId) {
-      await supabase.from('lender_subscriptions').upsert({ lender_id: lenderId, plan_type: planId, package_id: planId, package_name: planId.charAt(0).toUpperCase() + planId.slice(1), status: 'ACTIVE', payment_status: 'pending', amount: planId === 'starter' ? 250 : planId === 'professional' ? 350 : 500 }, { onConflict: 'lender_id' })
+  const handleUpgrade = (planId: string) => {
+    alert('To change your subscription plan, please contact support at support@cashub.com or call +264 61 123 4567')
+  }, { onConflict: 'lender_id' })
       setCurrentPlan(planId)
     }
     setUpgrading('')
@@ -115,7 +113,7 @@ export default function LenderBillingPage() {
                 <button onClick={() => handleUpgrade(plan.id)} disabled={upgrading === plan.id}
                   className="w-full py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                   {upgrading === plan.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                  {plan.price > (PLANS.find(p => p.id === currentPlan)?.price || 0) ? 'Upgrade' : 'Downgrade'}
+                  'Contact Support to Change Plan'
                 </button>
               ) : (
                 <button disabled className="w-full py-2.5 bg-neutral-100 text-neutral-400 rounded-xl text-sm font-semibold">Active Plan</button>
@@ -155,3 +153,4 @@ export default function LenderBillingPage() {
     </div>
   )
 }
+

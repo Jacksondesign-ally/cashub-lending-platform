@@ -1,5 +1,7 @@
 "use client"
 
+import jsPDF from 'jspdf'
+
 import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -24,9 +26,9 @@ export default function LoanAgreementPage() {
   const router = useRouter()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [currentStep, setCurrentStep] = useState<Step>('overview')
-  const [signatureMethod, setSignatureMethod] = useState<'draw' | 'otp' | 'selfie'>('draw')
-  const [otpCode, setOtpCode] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
+  const signatureMethod = 'draw'
+  
+  
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasSignature, setHasSignature] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -147,9 +149,41 @@ export default function LoanAgreementPage() {
     setHasSignature(false)
   }
 
-  const handleSendOtp = () => {
-    setOtpSent(true)
+  
+
+
+  const handleDownloadPDF = () => {
+    if (!loan) return
+    const doc = new jsPDF()
+    
+    doc.setFontSize(18)
+    doc.text('Loan Agreement', 105, 20, { align: 'center' })
+    
+    doc.setFontSize(10)
+    doc.text(`Loan Number: ${loan.loan_number}`, 20, 40)
+    doc.text(`Borrower: ${loan.borrower_name}`, 20, 50)
+    doc.text(`Amount: N$ ${loan.principal_amount?.toLocaleString()}`, 20, 60)
+    doc.text(`Interest Rate: ${loan.interest_rate}%`, 20, 70)
+    doc.text(`Term: ${loan.term_months} months`, 20, 80)
+    doc.text(`Monthly Payment: N$ ${loan.monthly_payment?.toLocaleString()}`, 20, 90)
+    doc.text(`Signed: ${new Date().toLocaleDateString()}`, 20, 100)
+    
+    doc.text('Terms and Conditions:', 20, 120)
+    doc.setFontSize(8)
+    const terms = [
+      '1. The borrower agrees to repay the loan amount plus interest.',
+      '2. Payments are due on the specified due date each month.',
+      '3. Late payments may incur additional fees as per NAMFISA regulations.',
+      '4. The lender reserves the right to report defaults to credit bureaus.',
+      '5. This agreement is governed by the laws of Namibia.'
+    ]
+    terms.forEach((term, i) => {
+      doc.text(term, 20, 130 + (i * 10))
+    })
+    
+    doc.save(`loan_agreement_${loan.loan_number}.pdf`)
   }
+
 
   const handleComplete = async () => {
     try {
@@ -429,26 +463,14 @@ export default function LoanAgreementPage() {
               </div>
             )}
 
-            {/* Selfie Verification */}
-            {signatureMethod === 'selfie' && (
-              <div className="space-y-3">
-                <div className="border-2 border-dashed border-neutral-300 rounded-xl p-8 text-center bg-neutral-50">
-                  <Camera className="w-10 h-10 text-neutral-300 mx-auto mb-2" />
-                  <p className="text-sm text-neutral-600 font-medium">Take a selfie to verify your identity</p>
-                  <p className="text-[10px] text-neutral-400 mt-1">Your photo will be used for identity verification only</p>
-                  <button className="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-all">
-                    Open Camera
-                  </button>
-                </div>
-              </div>
-            )}
+            
 
             <div className="flex gap-3">
               <button onClick={goBack} className="flex-1 py-2.5 bg-neutral-100 hover:bg-neutral-200 rounded-xl text-sm font-medium text-neutral-700 flex items-center justify-center gap-2">
                 <ChevronLeft className="w-4 h-4" /> Back
               </button>
               <button onClick={handleComplete}
-                disabled={(signatureMethod === 'draw' && !hasSignature) || (signatureMethod === 'otp' && otpCode.length < 6)}
+                disabled={!hasSignature}
                 className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50">
                 <Pen className="w-4 h-4" /> Sign Agreement
               </button>
@@ -479,8 +501,7 @@ export default function LoanAgreementPage() {
               <Link href="/borrower" className="flex-1 py-2.5 bg-neutral-100 hover:bg-neutral-200 rounded-xl text-sm font-medium text-neutral-700 text-center transition-all">
                 Back to Portal
               </Link>
-              <button className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-all">
-                Download PDF
+              <button onClick={handleDownloadPDF} className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2"><Download className="w-4 h-4" /> Download PDF
               </button>
             </div>
           </div>
@@ -489,3 +510,5 @@ export default function LoanAgreementPage() {
     </div>
   )
 }
+
+
