@@ -109,7 +109,7 @@ const highBugs: AuditItem[] = [
 
 const inconsistencies: AuditItem[] = [
   { id: 'INC-01', title: 'Two Separate Blacklist Tables', issue: 'Lender portal uses blacklist table; Borrower portal uses borrower_blacklist. Entries in one don\'t appear in the other.', fix: 'Consolidate to a single blacklist table with appropriate views per portal.', status: 'pending' },
-  { id: 'INC-02', title: 'Package Pricing Defined in Multiple Places', issue: 'signup/page.tsx, onboarding/page.tsx, and lender/billing/page.tsx each define their own package tiers and prices.', fix: 'Create a single lib/packages.ts constants file as source of truth.', status: 'pending' },
+  { id: 'INC-02', title: 'Package Pricing Defined in Multiple Places', issue: 'signup/page.tsx, onboarding/page.tsx, and lender/billing/page.tsx each define their own package tiers and prices.', fix: 'Create a single lib/packages.ts constants file as source of truth.', status: 'fixed' },
   { id: 'INC-03', title: 'Compliance Checklist is Hardcoded', issue: 'All checklist items and their done status are static booleans — don\'t reflect actual system state.', fix: 'Derive checklist states from real data or make them toggleable with persistence.', status: 'pending' },
   { id: 'INC-04', title: 'Dashboard Stats Show Fake Growth Percentages', issue: 'Values like +12.5%, +8.2% are hardcoded strings, not calculated from historical data.', fix: 'Calculate from last-month vs. current-month data, or remove change indicators.', status: 'pending' },
   { id: 'INC-05', title: 'Reports Period Filter Does Nothing', issue: 'period state is declared and watched by useEffect, but never used in any query.', fix: 'Implement period filtering with date range queries.', status: 'pending' },
@@ -317,6 +317,7 @@ export default function AuditReportsPage() {
     </div>
   )
 }
+
 
 
 
