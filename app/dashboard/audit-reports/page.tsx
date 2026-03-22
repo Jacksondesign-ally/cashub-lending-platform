@@ -51,14 +51,14 @@ const criticalBugs: AuditItem[] = [
     file: 'app/borrower/agreement/page.tsx lines 67-73',
     issue: 'Fetches the most recent approved loan globally with no borrower filter. Any borrower can view and sign another borrower\'s loan agreement.',
     fix: 'Filter by borrower_id or borrower_email matching the current user.',
-    status: 'pending'
+    status: 'fixed'
   },
   {
     id: 'BUG-06', title: 'Lender Fallback Fetches ALL Loans (DATA LEAK)',
     file: 'app/lender/loans/page.tsx, reports/page.tsx, compliance/page.tsx',
     issue: 'If lenderId is null (localStorage not set), the else branch fetches ALL loans in the system with no scoping.',
     fix: 'Show an error or empty state when lenderId is missing — never fetch unscoped data.',
-    status: 'pending'
+    status: 'fixed'
   },
   {
     id: 'BUG-07', title: 'No Server-Side Route Protection',
@@ -75,21 +75,21 @@ const highBugs: AuditItem[] = [
     file: 'app/borrower/page.tsx lines 170-204',
     issue: 'Both loans table and loan_applications table are fetched and merged. When an application converts to a loan, both appear — creating duplicates.',
     fix: 'Exclude loan_applications that have a corresponding loans record, or deduplicate by a linking field.',
-    status: 'pending'
+    status: 'fixed'
   },
   {
     id: 'BUG-09', title: 'Fabricated Email for Non-Email Usernames',
     file: 'app/borrower/page.tsx line 129',
     issue: 'If userName in localStorage is a display name (e.g., "John Doe"), a fake email "john.doe@email.com" is used for all DB queries. This could match the wrong borrower.',
     fix: 'Store the actual email separately in localStorage during login.',
-    status: 'pending'
+    status: 'fixed'
   },
   {
     id: 'BUG-10', title: 'Staff Deletion Permanently Removes Auth Record',
     file: 'app/lender/staff/page.tsx lines 68-70',
     issue: 'Permanently deletes the user profile record — orphaning Supabase auth records, loans, payments, and other linked data.',
     fix: 'Soft-delete by setting is_active = false instead.',
-    status: 'pending'
+    status: 'fixed'
   },
   {
     id: 'BUG-11', title: '"Mark as Under Review" Only Updates Local State',
@@ -103,7 +103,7 @@ const highBugs: AuditItem[] = [
     file: 'app/lender/loans/page.tsx line 37',
     issue: 'expandedId state and expand/collapse buttons exist, but no expanded detail row is rendered. The button does nothing visible.',
     fix: 'Add a conditional row below each loan row that shows details when expanded.',
-    status: 'pending'
+    status: 'fixed'
   },
 ]
 
@@ -125,7 +125,7 @@ const inconsistencies: AuditItem[] = [
   { id: 'INC-15', title: 'Notifications Tab is Empty', issue: 'The "Notifications" tab appears in the borrower tab bar but has no implementation.', fix: 'Implement or remove from the tab list.', status: 'pending' },
   { id: 'INC-16', title: 'Borrower Portal is a Single 1549-Line File', issue: 'All 11 tabs are in one massive component with 30+ state variables — very difficult to maintain.', fix: 'Split into sub-pages using Next.js file-based routing.', status: 'pending' },
   { id: 'INC-17', title: 'Stale localStorage Cache for Lender Info', issue: 'If lenderCompany, lenderLogo, lenderId change in the database, the cached values remain stale until next login.', fix: 'Refresh from Supabase on layout mount, or use React Context with periodic sync.', status: 'pending' },
-  { id: 'INC-18', title: 'Metadata Title Inconsistency', issue: 'app/layout.tsx title is "CashHub - Microlenders" (lowercase h). Rest of app uses "CasHuB".', fix: 'Standardize to "CasHuB" everywhere.', status: 'pending' },
+  { id: 'INC-18', title: 'Metadata Title Inconsistency', issue: 'app/layout.tsx title is "CashHub - Microlenders" (lowercase h). Rest of app uses "CasHuB".', fix: 'Standardize to "CasHuB" everywhere.', status: 'fixed' },
   { id: 'INC-19', title: 'Lender Onboarding Package Filter Missing New Tiers', issue: 'Package filter shows free-trial, basic, medium, advanced but signup creates starter, professional, enterprise tiers.', fix: 'Update the filter to include all tiers, or consolidate tier names.', status: 'pending' },
 ]
 
@@ -317,3 +317,6 @@ export default function AuditReportsPage() {
     </div>
   )
 }
+
+
+
