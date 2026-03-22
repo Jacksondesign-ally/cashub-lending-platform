@@ -153,19 +153,18 @@ export default function LoanAgreementPage() {
 
 
   const handleDownloadPDF = () => {
-    if (!loan) return
     const doc = new jsPDF()
     
     doc.setFontSize(18)
     doc.text('Loan Agreement', 105, 20, { align: 'center' })
     
     doc.setFontSize(10)
-    doc.text(`Loan Number: ${loan.loan_number}`, 20, 40)
-    doc.text(`Borrower: ${loan.borrower_name}`, 20, 50)
-    doc.text(`Amount: N$ ${loan.principal_amount?.toLocaleString()}`, 20, 60)
-    doc.text(`Interest Rate: ${loan.interest_rate}%`, 20, 70)
-    doc.text(`Term: ${loan.term_months} months`, 20, 80)
-    doc.text(`Monthly Payment: N$ ${loan.monthly_payment?.toLocaleString()}`, 20, 90)
+    doc.text(`Loan Number: ${loanData.loanNumber}`, 20, 40)
+    doc.text(`Borrower: ${borrowerInfo.fullName}`, 20, 50)
+    doc.text(`Amount: N$ ${loanData.principal.toLocaleString()}`, 20, 60)
+    doc.text(`Interest Rate: ${loanData.interestRate}%`, 20, 70)
+    doc.text(`Term: ${loanData.termMonths} months`, 20, 80)
+    doc.text(`Monthly Payment: N$ ${loanData.monthlyPayment.toLocaleString()}`, 20, 90)
     doc.text(`Signed: ${new Date().toLocaleDateString()}`, 20, 100)
     
     doc.text('Terms and Conditions:', 20, 120)
@@ -181,7 +180,7 @@ export default function LoanAgreementPage() {
       doc.text(term, 20, 130 + (i * 10))
     })
     
-    doc.save(`loan_agreement_${loan.loan_number}.pdf`)
+    doc.save(`loan_agreement_${loanData.loanNumber}.pdf`)
   }
 
 
@@ -510,5 +509,6 @@ export default function LoanAgreementPage() {
     </div>
   )
 }
+
 
 
