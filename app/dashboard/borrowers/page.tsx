@@ -58,6 +58,9 @@ export default function BorrowersPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedBorrower, setSelectedBorrower] = useState<Borrower | null>(null)
   const [subTier, setSubTier] = useState<SubTier>('free-trial')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(20)
+  const [totalCount, setTotalCount] = useState(0)
   const [savedContacts, setSavedContacts] = useState<string[]>([])
   const [showUpgradeHint, setShowUpgradeHint] = useState('')
 
@@ -120,6 +123,7 @@ export default function BorrowersPage() {
 
       if (error) throw error
       // @ts-ignore
+      setTotalCount(count || 0)
       setBorrowers(data || [])
     } catch (error) {
       console.error('Error fetching borrowers:', error)
@@ -495,6 +499,33 @@ export default function BorrowersPage() {
           </table>
         </div>
       </div>
+
+      {totalCount > itemsPerPage && (
+        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 flex items-center justify-between">
+          <p className="text-sm text-neutral-600">
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} borrowers
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="px-3 py-1.5 text-sm font-medium text-neutral-700">
+              Page {currentPage} of {Math.ceil(totalCount / itemsPerPage)}
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(Math.ceil(totalCount / itemsPerPage), p + 1))}
+              disabled={currentPage >= Math.ceil(totalCount / itemsPerPage)}
+              className="px-3 py-1.5 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

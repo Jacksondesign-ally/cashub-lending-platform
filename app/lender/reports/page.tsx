@@ -27,13 +27,52 @@ export default function LenderReportsPage() {
 
   useEffect(() => { fetchStats() }, [period])
 
+
+  const getDateRange = (period: string): { start: string | null; end: string | null } => {
+    const now = new Date()
+    const end = now.toISOString()
+    let start: string | null = null
+    
+    switch (period) {
+      case 'month':
+        start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+        break
+      case 'quarter':
+        const quarter = Math.floor(now.getMonth() / 3)
+        start = new Date(now.getFullYear(), quarter * 3, 1).toISOString()
+        break
+      case 'year':
+        start = new Date(now.getFullYear(), 0, 1).toISOString()
+        break
+      case 'all':
+      default:
+        start = null
+        break
+    }
+    
+    return { start, end }
+  }
+
   const fetchStats = async () => {
     setLoading(true)
     try {
       const lenderId = typeof window !== 'undefined' ? localStorage.getItem('lenderId') : null
       const lenderEmail = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : ''
+      const { start, end } = getDateRange(period)
 
-      // Build queries scoped to this lender
+      // Build queries scoped to this lender with date filtering
+      let borrowerQ = supabase.from('borrowers').select('id, risk_level, email')
+      let payQ = supabase.from('payments').select('id, amount, status')
+      
+      if (lenderId) {
+        borrowerQ = borrowerQ.eq('lender_id', lenderId)
+        payQ = payQ.eq('lender_id', lenderId)
+      }
+      
+      if (start) {
+        borrowerQ = borrowerQ.gte('created_at', start).lte('created_at', end)
+        payQ = payQ.gte('created_at', start).lte('created_at', end)
+      } scoped to this lender
       let borrowerQ = supabase.from('borrowers').select('id, risk_level, email')
       let payQ = supabase.from('payments').select('id, amount, status')
       if (lenderId) {
@@ -116,6 +155,19 @@ export default function LenderReportsPage() {
       </div>
 
       {/* KPI Row */}
+      <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-neutral-900">Reporting Period</h3>
+          <p className="text-xs text-neutral-500 mt-0.5">Filter reports by time period</p>
+        </div>
+        <select value={period} onChange={e => setPeriod(e.target.value)} className="px-3 py-2 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-cashub-500">
+          <option value="all">All Time</option>
+          <option value="month">This Month</option>
+          <option value="quarter">This Quarter</option>
+          <option value="year">This Year</option>
+        </select>
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Total Disbursed', value: `N$ ${stats.totalDisbursed.toLocaleString()}`, icon: Banknote, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -131,6 +183,19 @@ export default function LenderReportsPage() {
             <p className="text-xs text-neutral-500 mt-0.5">{s.label}</p>
           </div>
         ))}
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-neutral-900">Reporting Period</h3>
+          <p className="text-xs text-neutral-500 mt-0.5">Filter reports by time period</p>
+        </div>
+        <select value={period} onChange={e => setPeriod(e.target.value)} className="px-3 py-2 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-cashub-500">
+          <option value="all">All Time</option>
+          <option value="month">This Month</option>
+          <option value="quarter">This Quarter</option>
+          <option value="year">This Year</option>
+        </select>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -179,7 +244,20 @@ export default function LenderReportsPage() {
         {/* Borrower Risk Distribution */}
         <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
           <h3 className="text-sm font-bold text-neutral-900 mb-4">Borrower Risk Distribution</h3>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-neutral-900">Reporting Period</h3>
+          <p className="text-xs text-neutral-500 mt-0.5">Filter reports by time period</p>
+        </div>
+        <select value={period} onChange={e => setPeriod(e.target.value)} className="px-3 py-2 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-cashub-500">
+          <option value="all">All Time</option>
+          <option value="month">This Month</option>
+          <option value="quarter">This Quarter</option>
+          <option value="year">This Year</option>
+        </select>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
             {[
               { label: 'Low Risk', count: stats.riskLow, color: 'bg-green-50 border-green-200', text: 'text-green-700' },
               { label: 'Medium Risk', count: stats.riskMedium, color: 'bg-yellow-50 border-yellow-200', text: 'text-yellow-700' },
@@ -220,3 +298,4 @@ export default function LenderReportsPage() {
     </div>
   )
 }
+

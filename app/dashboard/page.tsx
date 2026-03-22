@@ -159,7 +159,7 @@ export default function Dashboard() {
         {
           title: 'Total Borrowers',
           value: borrowersCount?.toLocaleString() || '0',
-          change: '+12.5%',
+          change: undefined,
           changeType: 'positive',
           icon: Users,
           color: 'text-blue-600',
@@ -177,7 +177,7 @@ export default function Dashboard() {
         {
           title: 'Active Loans',
           value: activeLoans.toString(),
-          change: '+8.2%',
+          change: undefined,
           changeType: 'positive',
           icon: FileText,
           color: 'text-green-600',
@@ -186,7 +186,7 @@ export default function Dashboard() {
         {
           title: 'Total Portfolio',
           value: `N$ ${(totalPortfolio / 1000000).toFixed(1)}M`,
-          change: '+15.3%',
+          change: undefined,
           changeType: 'positive',
           icon: DollarSign,
           color: 'text-purple-600',
@@ -461,3 +461,4 @@ export default function Dashboard() {
     </>
   )
 }
+

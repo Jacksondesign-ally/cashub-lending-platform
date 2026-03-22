@@ -110,9 +110,9 @@ const highBugs: AuditItem[] = [
 const inconsistencies: AuditItem[] = [
   { id: 'INC-01', title: 'Two Separate Blacklist Tables', issue: 'Lender portal uses blacklist table; Borrower portal uses borrower_blacklist. Entries in one don\'t appear in the other.', fix: 'Consolidate to a single blacklist table with appropriate views per portal.', status: 'pending' },
   { id: 'INC-02', title: 'Package Pricing Defined in Multiple Places', issue: 'signup/page.tsx, onboarding/page.tsx, and lender/billing/page.tsx each define their own package tiers and prices.', fix: 'Create a single lib/packages.ts constants file as source of truth.', status: 'fixed' },
-  { id: 'INC-03', title: 'Compliance Checklist is Hardcoded', issue: 'All checklist items and their done status are static booleans — don\'t reflect actual system state.', fix: 'Derive checklist states from real data or make them toggleable with persistence.', status: 'pending' },
-  { id: 'INC-04', title: 'Dashboard Stats Show Fake Growth Percentages', issue: 'Values like +12.5%, +8.2% are hardcoded strings, not calculated from historical data.', fix: 'Calculate from last-month vs. current-month data, or remove change indicators.', status: 'pending' },
-  { id: 'INC-05', title: 'Reports Period Filter Does Nothing', issue: 'period state is declared and watched by useEffect, but never used in any query.', fix: 'Implement period filtering with date range queries.', status: 'pending' },
+  { id: 'INC-03', title: 'Compliance Checklist is Hardcoded', issue: 'All checklist items and their done status are static booleans — don\'t reflect actual system state.', fix: 'Derive checklist states from real data or make them toggleable with persistence.', status: 'fixed' },
+  { id: 'INC-04', title: 'Dashboard Stats Show Fake Growth Percentages', issue: 'Values like +12.5%, +8.2% are hardcoded strings, not calculated from historical data.', fix: 'Calculate from last-month vs. current-month data, or remove change indicators.', status: 'fixed' },
+  { id: 'INC-05', title: 'Reports Period Filter Does Nothing', issue: 'period state is declared and watched by useEffect, but never used in any query.', fix: 'Implement period filtering with date range queries.', status: 'fixed' },
   { id: 'INC-06', title: 'Dashboard Layout References Removed Roles', issue: 'Handles lender, admin, viewer roles which were removed from the system.', fix: 'Clean up to only handle super_admin, lender_admin, loan_officer, borrower.', status: 'fixed' },
   { id: 'INC-07', title: 'Scam Alerts Fetches All Lenders\' Alerts', issue: 'Fetch has no submitted_by filter — all scam alerts from every lender are displayed.', fix: 'Add .eq(\'submitted_by\', lenderEmail) for the "my submissions" view.', status: 'fixed' },
   { id: 'INC-08', title: 'Logos and Documents Stored as Base64 in Database', issue: 'Entire file contents stored as base64 data URLs — significantly bloats the database for large images/PDFs.', fix: 'Use Supabase Storage buckets; store only the URL/path in the database.', status: 'pending' },
@@ -120,11 +120,11 @@ const inconsistencies: AuditItem[] = [
   { id: 'INC-10', title: 'OTP and Selfie Signing Not Implemented', issue: 'OTP just sets otpSent = true without sending anything. Selfie has no camera integration. Both are non-functional placeholders.', fix: 'Implement with a real SMS provider (e.g., Twilio) and camera API, or disable these options.', status: 'pending' },
   { id: 'INC-11', title: 'Download PDF Not Implemented', issue: '"Download PDF" button renders but has no onClick handler — it does nothing.', fix: 'Implement with jspdf or @react-pdf/renderer.', status: 'pending' },
   { id: 'INC-12', title: 'Billing Plan Changes Are UI Stubs', issue: 'Plan upgrade/downgrade buttons exist but no payment gateway or subscription update logic is connected.', fix: 'Integrate a payment provider or clearly mark as "Contact support to change plan."', status: 'pending' },
-  { id: 'INC-13', title: 'No Pagination Anywhere', issue: 'Every data fetch loads all records at once — will cause performance issues with hundreds of records.', fix: 'Implement cursor-based or offset pagination with page size of 20-50 records.', status: 'pending' },
+  { id: 'INC-13', title: 'No Pagination Anywhere', issue: 'Every data fetch loads all records at once — will cause performance issues with hundreds of records.', fix: 'Implement cursor-based or offset pagination with page size of 20-50 records.', status: 'fixed' },
   { id: 'INC-14', title: 'Silent Error Handling (Empty Catch Blocks)', issue: '20+ instances of empty catch blocks with no error logging or user feedback.', fix: 'console.error all caught errors. Show toast notifications for user-facing failures.', status: 'fixed' },
   { id: 'INC-15', title: 'Notifications Tab is Empty', issue: 'The "Notifications" tab appears in the borrower tab bar but has no implementation.', fix: 'Implement or remove from the tab list.', status: 'fixed' },
   { id: 'INC-16', title: 'Borrower Portal is a Single 1549-Line File', issue: 'All 11 tabs are in one massive component with 30+ state variables — very difficult to maintain.', fix: 'Split into sub-pages using Next.js file-based routing.', status: 'pending' },
-  { id: 'INC-17', title: 'Stale localStorage Cache for Lender Info', issue: 'If lenderCompany, lenderLogo, lenderId change in the database, the cached values remain stale until next login.', fix: 'Refresh from Supabase on layout mount, or use React Context with periodic sync.', status: 'pending' },
+  { id: 'INC-17', title: 'Stale localStorage Cache for Lender Info', issue: 'If lenderCompany, lenderLogo, lenderId change in the database, the cached values remain stale until next login.', fix: 'Refresh from Supabase on layout mount, or use React Context with periodic sync.', status: 'fixed' },
   { id: 'INC-18', title: 'Metadata Title Inconsistency', issue: 'app/layout.tsx title is "CashHub - Microlenders" (lowercase h). Rest of app uses "CasHuB".', fix: 'Standardize to "CasHuB" everywhere.', status: 'fixed' },
   { id: 'INC-19', title: 'Lender Onboarding Package Filter Missing New Tiers', issue: 'Package filter shows free-trial, basic, medium, advanced but signup creates starter, professional, enterprise tiers.', fix: 'Update the filter to include all tiers, or consolidate tier names.', status: 'fixed' },
 ]
@@ -317,6 +317,7 @@ export default function AuditReportsPage() {
     </div>
   )
 }
+
 
 
 
