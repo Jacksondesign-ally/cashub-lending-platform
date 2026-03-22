@@ -4,19 +4,28 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Shield, Download, RefreshCw, CheckCircle, FileText, BarChart3, Users, Calendar } from 'lucide-react'
 
+interface ChecklistItem {
+  id: string
+  task: string
+  completed: boolean
+  completed_at?: string
+  completed_by?: string
+}
+
 export default function LenderCompliancePage() {
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState({ loans: 0, borrowers: 0, payments: 0, period: '' })
   const [exported, setExported] = useState<string | null>(null)
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([])
 
-  useEffect(() => { fetchSummary() }, [])
+  useEffect(() => { fetchSummary(); fetchChecklist() }, [])
 
   const fetchSummary = async () => {
     setLoading(true)
     try {
       const lenderId = typeof window !== 'undefined' ? localStorage.getItem('lenderId') : null
       if (!lenderId) {
-        console.warn('No lenderId found in localStorage â€” cannot fetch compliance data')
+        console.warn('No lenderId found in localStorage — cannot fetch compliance data')
         setStats({ loans: 0, borrowers: 0, payments: 0, period: new Date().toLocaleDateString('en-NA', { month: 'long', year: 'numeric' }) })
         setLoading(false)
         return
@@ -31,10 +40,9 @@ export default function LenderCompliancePage() {
         payments: payments?.length || 0,
         period: new Date().toLocaleDateString('en-NA', { month: 'long', year: 'numeric' }),
       })
-    } catch (err) { console.error('Compliance fetch error:', err) }
+    } catch (err) { console.error('[CasHuB Error]', err) }
     setLoading(false)
   }
-
 
   const fetchChecklist = async () => {
     try {
@@ -96,7 +104,6 @@ export default function LenderCompliancePage() {
     } catch (err) { console.error('[CasHuB Error]', err) }
   }
 
-
   const exportReport = async (type: string) => {
     setLoading(true)
     try {
@@ -138,7 +145,7 @@ export default function LenderCompliancePage() {
         setExported(type)
         setTimeout(() => setExported(null), 3000)
       }
-    } catch (err) { console.error('Export error:', err) }
+    } catch (err) { console.error('[CasHuB Error]', err) }
     setLoading(false)
   }
 
@@ -191,17 +198,11 @@ export default function LenderCompliancePage() {
       <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
         <h3 className="text-sm font-bold text-neutral-900 mb-4 flex items-center gap-2"><Calendar className="w-4 h-4 text-neutral-500" /> Compliance Checklist</h3>
         <div className="space-y-3">
-          {[
-            { task: 'Verify all active loans have signed loan agreements', done: true },
-            { task: 'Ensure all borrowers have verified ID documents on file', done: false },
-            { task: 'Submit quarterly NAMFISA report', done: false },
-            { task: 'Review and update NAMFISA license renewal status', done: true },
-            { task: 'Confirm all loan officers have valid certifications', done: true },
-            { task: 'Audit interest rates comply with NAMFISA caps', done: false },
-          ].map((item, i) => (
-            <div key={i} className="flex items-start gap-3 p-3 bg-neutral-50 rounded-lg">
+          {checklist.map((item) => (
+            <div key={item.id} className="flex items-start gap-3 p-3 bg-neutral-50 rounded-lg">
               <button onClick={() => toggleChecklistItem(item.id, !item.completed)} className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors hover:scale-110 ${item.completed ? 'bg-green-500 hover:bg-green-600' : 'border-2 border-neutral-300 hover:border-neutral-400'}`}>
-                {item.completed && <CheckCircle className="w-3 h-3 text-white" />}</button>
+                {item.completed && <CheckCircle className="w-3 h-3 text-white" />}
+              </button>
               <p className={`text-xs ${item.completed ? 'text-neutral-500 line-through' : 'text-neutral-800 font-medium'}`}>{item.task}</p>
             </div>
           ))}
@@ -210,5 +211,3 @@ export default function LenderCompliancePage() {
     </div>
   )
 }
-
-
