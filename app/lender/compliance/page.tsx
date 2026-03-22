@@ -8,32 +8,37 @@ interface ChecklistItem {
   id: string
   task: string
   completed: boolean
-  completed_at?: string
-  completed_by?: string
 }
 
 export default function LenderCompliancePage() {
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState({ loans: 0, borrowers: 0, payments: 0, period: '' })
   const [exported, setExported] = useState<string | null>(null)
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([])
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([
+    { id: '1', task: 'Verify all active loans have signed loan agreements', completed: false },
+    { id: '2', task: 'Ensure all borrowers have verified ID documents on file', completed: false },
+    { id: '3', task: 'Submit quarterly NAMFISA report', completed: false },
+    { id: '4', task: 'Review and update NAMFISA license renewal status', completed: false },
+    { id: '5', task: 'Confirm all loan officers have valid certifications', completed: false },
+    { id: '6', task: 'Audit interest rates comply with NAMFISA caps', completed: false },
+  ])
 
-  useEffect(() => { fetchSummary(); fetchChecklist() }, [])
+  useEffect(() => { fetchSummary() }, [])
 
   const fetchSummary = async () => {
     setLoading(true)
     try {
       const lenderId = typeof window !== 'undefined' ? localStorage.getItem('lenderId') : null
       if (!lenderId) {
-        console.warn('No lenderId found in localStorage — cannot fetch compliance data')
         setStats({ loans: 0, borrowers: 0, payments: 0, period: new Date().toLocaleDateString('en-NA', { month: 'long', year: 'numeric' }) })
         setLoading(false)
         return
       }
-      const loanQ = supabase.from('loans').select('id').eq('lender_id', lenderId)
-      const borrowerQ = supabase.from('borrowers').select('id').eq('lender_id', lenderId)
-      const payQ = supabase.from('payments').select('id').eq('lender_id', lenderId)
-      const [{ data: loans }, { data: borrowers }, { data: payments }] = await Promise.all([loanQ, borrowerQ, payQ])
+      const [{ data: loans }, { data: borrowers }, { data: payments }] = await Promise.all([
+        supabase.from('loans').select('id').eq('lender_id', lenderId),
+        supabase.from('borrowers').select('id').eq('lender_id', lenderId),
+        supabase.from('payments').select('id').eq('lender_id', lenderId)
+      ])
       setStats({
         loans: loans?.length || 0,
         borrowers: borrowers?.length || 0,
@@ -44,64 +49,8 @@ export default function LenderCompliancePage() {
     setLoading(false)
   }
 
-  const fetchChecklist = async () => {
-    try {
-      const lenderId = typeof window !== 'undefined' ? localStorage.getItem('lenderId') : null
-      if (!lenderId) {
-        setChecklist([
-          { id: '1', task: 'Verify all active loans have signed loan agreements', completed: false },
-          { id: '2', task: 'Ensure all borrowers have verified ID documents on file', completed: false },
-          { id: '3', task: 'Submit quarterly NAMFISA report', completed: false },
-          { id: '4', task: 'Review and update NAMFISA license renewal status', completed: false },
-          { id: '5', task: 'Confirm all loan officers have valid certifications', completed: false },
-          { id: '6', task: 'Audit interest rates comply with NAMFISA caps', completed: false },
-        ])
-        return
-      }
-      const { data, error } = await supabase
-        .from('compliance_checklist')
-        .select('*')
-        .eq('lender_id', lenderId)
-        .order('created_at', { ascending: true })
-      
-      if (error) throw error
-      
-      if (!data || data.length === 0) {
-        const defaultItems = [
-          'Verify all active loans have signed loan agreements',
-          'Ensure all borrowers have verified ID documents on file',
-          'Submit quarterly NAMFISA report',
-          'Review and update NAMFISA license renewal status',
-          'Confirm all loan officers have valid certifications',
-          'Audit interest rates comply with NAMFISA caps',
-        ]
-        const { data: inserted } = await supabase
-          .from('compliance_checklist')
-          .insert(defaultItems.map(task => ({ lender_id: lenderId, task, completed: false })))
-          .select()
-        setChecklist(inserted || [])
-      } else {
-        setChecklist(data)
-      }
-    } catch (err) { console.error('[CasHuB Error]', err); setChecklist([]) }
-  }
-
-  const toggleChecklistItem = async (id: string, completed: boolean) => {
-    try {
-      const userEmail = typeof window !== 'undefined' ? localStorage.getItem('userEmail') : null
-      const { error } = await supabase
-        .from('compliance_checklist')
-        .update({ 
-          completed, 
-          completed_at: completed ? new Date().toISOString() : null,
-          completed_by: completed ? userEmail : null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-      
-      if (error) throw error
-      setChecklist(prev => prev.map(item => item.id === id ? { ...item, completed, completed_at: completed ? new Date().toISOString() : undefined } : item))
-    } catch (err) { console.error('[CasHuB Error]', err) }
+  const toggleChecklistItem = (id: string) => {
+    setChecklist(prev => prev.map(item => item.id === id ? { ...item, completed: !item.completed } : item))
   }
 
   const exportReport = async (type: string) => {
@@ -166,7 +115,7 @@ export default function LenderCompliancePage() {
         <Shield className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-bold text-teal-900">NAMFISA Compliance</p>
-          <p className="text-xs text-teal-700 mt-0.5">All exports are in CSV format as required for NAMFISA quarterly submissions. Ensure you review and validate the data before submitting to regulators. Current period: <span className="font-semibold">{stats.period}</span>.</p>
+          <p className="text-xs text-teal-700 mt-0.5">All exports are in CSV format as required for NAMFISA quarterly submissions. Current period: <span className="font-semibold">{stats.period}</span>.</p>
         </div>
       </div>
 
@@ -200,7 +149,7 @@ export default function LenderCompliancePage() {
         <div className="space-y-3">
           {checklist.map((item) => (
             <div key={item.id} className="flex items-start gap-3 p-3 bg-neutral-50 rounded-lg">
-              <button onClick={() => toggleChecklistItem(item.id, !item.completed)} className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors hover:scale-110 ${item.completed ? 'bg-green-500 hover:bg-green-600' : 'border-2 border-neutral-300 hover:border-neutral-400'}`}>
+              <button onClick={() => toggleChecklistItem(item.id)} className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors hover:scale-110 ${item.completed ? 'bg-green-500 hover:bg-green-600' : 'border-2 border-neutral-300 hover:border-neutral-400'}`}>
                 {item.completed && <CheckCircle className="w-3 h-3 text-white" />}
               </button>
               <p className={`text-xs ${item.completed ? 'text-neutral-500 line-through' : 'text-neutral-800 font-medium'}`}>{item.task}</p>
