@@ -72,12 +72,6 @@ export default function LenderReportsPage() {
       if (start) {
         borrowerQ = borrowerQ.gte('created_at', start).lte('created_at', end)
         payQ = payQ.gte('created_at', start).lte('created_at', end)
-      } scoped to this lender
-      let borrowerQ = supabase.from('borrowers').select('id, risk_level, email')
-      let payQ = supabase.from('payments').select('id, amount, status')
-      if (lenderId) {
-        borrowerQ = borrowerQ.eq('lender_id', lenderId)
-        payQ = payQ.eq('lender_id', lenderId)
       }
 
       const [{ data: borrowers }, { data: apps }, { data: payments }] = await Promise.all([
@@ -298,4 +292,5 @@ export default function LenderReportsPage() {
     </div>
   )
 }
+
 
