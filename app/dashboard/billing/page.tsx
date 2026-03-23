@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { logAudit } from '@/lib/audit-logger'
 import { 
   CreditCard, 
   Crown, 
@@ -114,6 +115,12 @@ export default function BillingPage() {
         amount: pkg.price,
         auto_renew: false,
       }, { onConflict: 'lender_id' })
+      await logAudit({
+        action: 'settings.updated',
+        entity_type: 'settings',
+        entity_id: assigningPlan.lenderId,
+        details: { plan: pkg.name, price: pkg.price },
+      })
       setAssigningPlan(null)
       await fetchLenderPlans()
     } catch (err) { console.error('Error assigning plan:', err) }

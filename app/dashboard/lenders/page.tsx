@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { Building, Search, CheckCircle, Ban, RefreshCw, Phone, Mail, Globe, MapPin, ChevronDown, ChevronUp, Users, Calendar, AlertTriangle, Shield, UserPlus, Send } from 'lucide-react'
+import { Building, Search, CheckCircle, Ban, RefreshCw, Phone, Mail, Globe, MapPin, ChevronDown, ChevronUp, Users, Calendar, AlertTriangle, Shield, UserPlus, Send, ChevronLeft, ChevronRight } from 'lucide-react'
+import { logAudit } from '@/lib/audit-logger'
 
 interface Lender {
   id: string
@@ -29,6 +30,8 @@ export default function LendersPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
 
   useEffect(() => { fetchLenders() }, [])
 
@@ -42,9 +45,15 @@ export default function LendersPage() {
     setLoading(false)
   }
 
-  const toggleActive = async (id: string, current: boolean) => {
+  const toggleActive = async (id: string, current: boolean, companyName: string) => {
     setActionLoading(id)
     await supabase.from('lenders').update({ is_active: !current }).eq('id', id)
+    await logAudit({
+      action: current ? 'borrower.blacklisted' : 'borrower.removed_from_blacklist',
+      entity_type: 'staff',
+      entity_id: id,
+      details: { company_name: companyName, action: current ? 'suspended' : 'reactivated' },
+    })
     setLenders(prev => prev.map(l => l.id === id ? { ...l, is_active: !current } : l))
     setActionLoading(null)
   }
@@ -57,6 +66,8 @@ export default function LendersPage() {
   })
 
   const stats = { total: lenders.length, active: lenders.filter(l => l.is_active).length, inactive: lenders.filter(l => !l.is_active).length }
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
+  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cashub-600" /></div>
 
@@ -112,7 +123,7 @@ export default function LendersPage() {
             <p className="text-neutral-400 text-sm mt-1">Lenders will appear here once they register and are approved.</p>
           </div>
         )}
-        {filtered.map(lender => (
+        {paginated.map(lender => (
           <div key={lender.id} className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
             <div className="p-5 flex items-start justify-between cursor-pointer" onClick={() => setExpandedId(expandedId === lender.id ? null : lender.id)}>
               <div className="flex items-start gap-4">
@@ -170,7 +181,7 @@ export default function LendersPage() {
                     </div>
                   )}
                   <button
-                    onClick={() => toggleActive(lender.id, lender.is_active)}
+                    onClick={() => toggleActive(lender.id, lender.is_active, lender.company_name)}
                     disabled={actionLoading === lender.id}
                     className={`w-full py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${lender.is_active ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}`}
                   >
@@ -183,6 +194,31 @@ export default function LendersPage() {
           </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-xs text-neutral-500">
+            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} of {filtered.length} lenders
+          </p>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+              className="p-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-50 disabled:opacity-40">
+              <ChevronLeft className="w-4 h-4 text-neutral-500" />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              <button key={p} onClick={() => setCurrentPage(p)}
+                className={`w-8 h-8 rounded-lg text-xs font-medium border ${
+                  p === currentPage ? 'bg-neutral-900 text-white border-neutral-900' : 'border-neutral-200 hover:bg-neutral-50 text-neutral-600'
+                }`}>{p}</button>
+            ))}
+            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+              className="p-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-50 disabled:opacity-40">
+              <ChevronRight className="w-4 h-4 text-neutral-500" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
