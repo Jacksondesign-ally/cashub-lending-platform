@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   FileText, CheckCircle, ChevronRight, ChevronLeft, User, Shield,
-  Calendar, DollarSign, Pen, ArrowLeft, Info, Download
+  Calendar, DollarSign, Pen, ArrowLeft, Info, Download, Smartphone
 } from 'lucide-react'
 
 type Step = 'overview' | 'personal' | 'terms' | 'agreement' | 'signature' | 'complete'
