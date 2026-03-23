@@ -22,7 +22,7 @@ export function DisbursementChart({ data, title }: ChartProps) {
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis dataKey="month" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 11 }} />
-          <Tooltip formatter={(value: number) => [`N$ ${value.toLocaleString()}`, 'Amount']} />
+          <Tooltip formatter={(value) => [`N$ ${Number(value).toLocaleString()}`, 'Amount']} />
           <Bar dataKey="amount" fill="#10b981" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
@@ -39,7 +39,7 @@ export function CollectionTrendChart({ data, title }: ChartProps) {
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis dataKey="month" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 11 }} />
-          <Tooltip formatter={(value: number) => [`N$ ${value.toLocaleString()}`, '']} />
+          <Tooltip formatter={(value) => [`N$ ${Number(value).toLocaleString()}`, '']} />
           <Legend />
           <Line type="monotone" dataKey="collected" stroke="#10b981" strokeWidth={2} name="Collected" dot={{ r: 3 }} />
           <Line type="monotone" dataKey="expected" stroke="#3b82f6" strokeWidth={2} name="Expected" dot={{ r: 3 }} strokeDasharray="5 5" />
