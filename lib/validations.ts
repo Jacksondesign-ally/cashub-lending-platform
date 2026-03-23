@@ -71,15 +71,18 @@ export const staffInviteSchema = z.object({
 })
 
 // ─── Helper: validate and return errors ───
-export function validate<T>(schema: z.ZodSchema<T>, data: unknown): { success: true; data: T } | { success: false; errors: Record<string, string> } {
-  const result = schema.safeParse(data)
-  if (!result.success) {
+export function validate<T>(schema: z.ZodType<T>, input: unknown): { success: true; data: T } | { success: false; errors: Record<string, string> } {
+  try {
+    const data = schema.parse(input)
+    return { success: true, data }
+  } catch (err) {
     const errors: Record<string, string> = {}
-    result.error.errors.forEach(err => {
-      const key = err.path.join('.')
-      if (!errors[key]) errors[key] = err.message
-    })
+    if (err instanceof z.ZodError) {
+      err.errors.forEach(e => {
+        const key = e.path.join('.') || '_'
+        if (!errors[key]) errors[key] = e.message
+      })
+    }
     return { success: false, errors }
   }
-  return { success: true, data: result.data }
 }
