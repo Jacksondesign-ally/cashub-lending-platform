@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   FileText, CheckCircle, ChevronRight, ChevronLeft, User, Shield,
-  Calendar, DollarSign, Pen, Smartphone, Camera, ArrowLeft, Info
+  Calendar, DollarSign, Pen, ArrowLeft, Info, Download
 } from 'lucide-react'
 
 type Step = 'overview' | 'personal' | 'terms' | 'agreement' | 'signature' | 'complete'
@@ -27,8 +27,6 @@ export default function LoanAgreementPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [currentStep, setCurrentStep] = useState<Step>('overview')
   const signatureMethod = 'draw'
-  
-  
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasSignature, setHasSignature] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -407,21 +405,9 @@ export default function LoanAgreementPage() {
             <h2 className="text-lg font-bold text-neutral-900">Digital Signature</h2>
             <p className="text-sm text-neutral-500">Choose your preferred method to sign the agreement.</p>
 
-            {/* Signature Method Selection */}
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: 'draw' as const, label: 'Draw Signature', icon: Pen },
-                { id: 'otp' as const, label: 'OTP Verification', icon: Smartphone },
-                { id: 'selfie' as const, label: 'Selfie Verification', icon: Camera },
-              ].map(method => (
-                <button key={method.id} onClick={() => setSignatureMethod(method.id)}
-                  className={`p-3 rounded-xl border-2 text-center transition-all ${
-                    signatureMethod === method.id ? 'border-emerald-500 bg-emerald-50' : 'border-neutral-200 hover:border-neutral-300'
-                  }`}>
-                  <method.icon className={`w-5 h-5 mx-auto mb-1 ${signatureMethod === method.id ? 'text-emerald-600' : 'text-neutral-400'}`} />
-                  <p className="text-[10px] font-medium text-neutral-700">{method.label}</p>
-                </button>
-              ))}
+            {/* Signature Method: Draw only */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+              <p className="text-xs text-blue-700"><strong>Signature Method:</strong> Draw your signature below using your mouse or touchscreen.</p>
             </div>
 
             {/* Draw Signature */}
@@ -439,30 +425,6 @@ export default function LoanAgreementPage() {
               </div>
             )}
 
-            {/* OTP Verification */}
-            {signatureMethod === 'otp' && (
-              <div className="space-y-3">
-                <p className="text-sm text-neutral-600">
-                  We will send a one-time password to your registered phone number for verification.
-                </p>
-                {!otpSent ? (
-                  <button onClick={handleSendOtp}
-                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-all">
-                    Send OTP to Phone
-                  </button>
-                ) : (
-                  <div>
-                    <label className="block text-xs font-medium text-neutral-700 mb-1">Enter OTP Code</label>
-                    <input type="text" value={otpCode} onChange={e => setOtpCode(e.target.value)}
-                      placeholder="Enter 6-digit code" maxLength={6}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm text-center tracking-widest font-mono focus:ring-2 focus:ring-emerald-500" />
-                    <p className="text-[10px] text-neutral-400 mt-1">Demo: enter any 6-digit code</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            
 
             <div className="flex gap-3">
               <button onClick={goBack} className="flex-1 py-2.5 bg-neutral-100 hover:bg-neutral-200 rounded-xl text-sm font-medium text-neutral-700 flex items-center justify-center gap-2">
