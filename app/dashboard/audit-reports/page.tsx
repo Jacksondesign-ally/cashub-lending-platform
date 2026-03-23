@@ -6,7 +6,7 @@ import {
   ChevronDown, ChevronUp, FileText, Zap, Settings2, BarChart3
 } from 'lucide-react'
 
-type Status = 'fixed' | 'pending' | 'in_progress'
+type Status = 'fixed' | 'pending' | 'in_progress' | 'documented'
 
 interface AuditItem {
   id: string
