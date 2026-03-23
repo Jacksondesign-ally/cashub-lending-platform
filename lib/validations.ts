@@ -78,7 +78,7 @@ export function validate<T>(schema: z.ZodType<T>, input: unknown): { success: tr
   } catch (err) {
     const errors: Record<string, string> = {}
     if (err instanceof z.ZodError) {
-      err.errors.forEach(e => {
+      err.issues.forEach(e => {
         const key = e.path.join('.') || '_'
         if (!errors[key]) errors[key] = e.message
       })
