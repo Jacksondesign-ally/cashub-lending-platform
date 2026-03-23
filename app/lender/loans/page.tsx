@@ -193,7 +193,7 @@ export default function LenderLoansPage() {
                       <tr className="bg-neutral-50/70">
                         <td colSpan={8} className="px-4 py-4">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                            <div><span className="text-neutral-500 block">Interest Rate</span><span className="font-semibold text-neutral-900">{loan.interest_rate || 0}%</span></div>
+                            <div><span className="text-neutral-500 block">Interest Rate</span><span className={`font-semibold ${(loan.interest_rate || 0) > 30 ? 'text-red-600' : 'text-neutral-900'}`}>{loan.interest_rate || 0}%{(loan.interest_rate || 0) > 30 && <span className="ml-1 text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">Exceeds NAMFISA cap</span>}</span></div>
                             <div><span className="text-neutral-500 block">Application Date</span><span className="font-semibold text-neutral-900">{loan.application_date || loan.created_at?.split('T')[0] || '—'}</span></div>
                             <div><span className="text-neutral-500 block">Start Date</span><span className="font-semibold text-neutral-900">{loan.start_date || '—'}</span></div>
                             <div><span className="text-neutral-500 block">End Date</span><span className="font-semibold text-neutral-900">{loan.end_date || '—'}</span></div>

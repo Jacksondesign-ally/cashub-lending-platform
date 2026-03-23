@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { BarChart3, RefreshCw, TrendingUp, TrendingDown, Users, FileText, Banknote, AlertCircle } from 'lucide-react'
+import { RiskDistributionChart, LoanStatusChart } from '@/components/charts/LoanCharts'
 
 interface ReportStats {
   totalBorrowers: number
@@ -289,8 +290,27 @@ export default function LenderReportsPage() {
           </div>
         </div>
       </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <RiskDistributionChart
+          title="Risk Distribution"
+          data={[
+            { name: 'Low', value: stats.riskLow },
+            { name: 'Medium', value: stats.riskMedium },
+            { name: 'High', value: stats.riskHigh },
+          ].filter(d => d.value > 0)}
+        />
+        <LoanStatusChart
+          title="Loan Status Breakdown"
+          data={[
+            { status: 'Active', count: stats.activeLoans },
+            { status: 'Completed', count: stats.completedLoans },
+            { status: 'Overdue', count: stats.overdueLoans },
+            { status: 'Pending', count: stats.pendingApplications },
+          ].filter(d => d.count > 0)}
+        />
+      </div>
     </div>
   )
 }
-
-

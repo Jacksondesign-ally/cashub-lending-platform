@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { detectOverdueLoans } from '@/lib/overdue-detection'
 import LanguageDropdown from '@/components/LanguageDropdown'
 import {
   LayoutDashboard, Users, FileText, Banknote, UserCog, Ban,
@@ -45,6 +46,8 @@ export default function LenderLayout({ children }: { children: React.ReactNode }
     setMounted(true)
     const role = localStorage.getItem('userRole')
     const name = localStorage.getItem('userName') || 'Lender'
+    const lid = localStorage.getItem('lenderId')
+    if (lid) detectOverdueLoans(lid).catch(() => {})
     if (!role || !['lender_admin', 'lender', 'loan_officer'].includes(role)) {
       router.push('/login')
       return
