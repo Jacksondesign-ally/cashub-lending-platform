@@ -151,6 +151,7 @@ const statusConfig: Record<Status, { label: string; icon: React.ReactNode; color
   fixed:       { label: 'Fixed',       icon: <CheckCircle2 className="w-4 h-4" />, color: 'text-green-700',  bg: 'bg-green-50 border-green-200' },
   in_progress: { label: 'In Progress', icon: <Clock className="w-4 h-4" />,        color: 'text-blue-700',   bg: 'bg-blue-50 border-blue-200' },
   pending:     { label: 'Pending',     icon: <XCircle className="w-4 h-4" />,      color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200' },
+  documented:  { label: 'Documented', icon: <FileText className="w-4 h-4" />,    color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' },
 }
 
 function AuditCard({ item }: { item: AuditItem }) {
