@@ -77,9 +77,11 @@ export function validate<T>(schema: z.ZodSchema<T>, data: unknown): { success: t
     return { success: true, data: result.data }
   }
   const errors: Record<string, string> = {}
-  result.error.errors.forEach(err => {
-    const key = err.path.join('.')
-    if (!errors[key]) errors[key] = err.message
-  })
+  if (!result.success) {
+    result.error.errors.forEach(err => {
+      const key = err.path.join('.')
+      if (!errors[key]) errors[key] = err.message
+    })
+  }
   return { success: false, errors }
 }
