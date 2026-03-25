@@ -47,6 +47,8 @@ interface SidebarProps {
 // for emergency support access (law enforcement / lender support scenarios).
 const superAdminMenu = [
   { id: 'dashboard',    name: 'Dashboard',          href: '/dashboard',                icon: LayoutDashboard, color: 'text-blue-600',   bgColor: 'bg-blue-50' },
+  { id: 'monitoring',   name: 'Monitoring',         href: '/dashboard/monitoring',     icon: Activity,        color: 'text-emerald-600',bgColor: 'bg-emerald-50' },
+  { id: 'intervention', name: 'Intervention',       href: '/dashboard/intervention',   icon: Shield,          color: 'text-red-600',    bgColor: 'bg-red-50' },
   { id: 'lenders',      name: 'Lenders',             href: '/dashboard/lenders',        icon: Building,        color: 'text-violet-600', bgColor: 'bg-violet-50' },
   { id: 'onboarding',  name: 'Lender Onboarding',   href: '/dashboard/onboarding',     icon: UserCheck,       color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
   { id: 'packages',    name: 'Packages',            href: '/dashboard/packages',       icon: Package,         color: 'text-amber-600',  bgColor: 'bg-amber-50' },
