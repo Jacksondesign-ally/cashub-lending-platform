@@ -141,26 +141,32 @@ export default function AdminMonitoringDashboard() {
 
   const fetchRecentActivity = async () => {
     try {
-      // Fetch last 10 loans
+      // Fetch last loans with borrower info
       const { data: loans } = await supabase
         .from('loans')
-        .select('id, loan_number, principal_amount, created_at, borrowers!inner(first_name, last_name)')
+        .select('id, loan_number, principal_amount, created_at, borrower_id')
         .order('created_at', { ascending: false })
         .limit(5)
 
-      // Fetch last 10 payments
+      // Fetch last payments
       const { data: payments } = await supabase
         .from('payments')
-        .select('id, amount, created_at, loans!inner(loan_number, borrowers!inner(first_name, last_name))')
+        .select('id, amount, created_at, loan_id')
         .order('created_at', { ascending: false })
         .limit(5)
 
-      // Fetch last 10 registered borrowers
+      // Fetch last registered borrowers
       const { data: newBorrowers } = await supabase
         .from('borrowers')
         .select('id, first_name, last_name, created_at')
         .order('created_at', { ascending: false })
         .limit(5)
+
+      // Create a map of borrower names
+      const borrowerMap = new Map()
+      newBorrowers?.forEach(b => {
+        borrowerMap.set(b.id, `${b.first_name} ${b.last_name}`)
+      })
 
       // Combine and sort activities
       const activities: RecentActivity[] = [
@@ -168,7 +174,7 @@ export default function AdminMonitoringDashboard() {
           id: loan.id,
           type: 'loan_created' as const,
           description: `Loan ${loan.loan_number} created`,
-          entityName: loan.borrowers ? `${loan.borrowers.first_name} ${loan.borrowers.last_name}` : 'Unknown',
+          entityName: borrowerMap.get(loan.borrower_id) || 'Unknown',
           timestamp: loan.created_at,
           amount: loan.principal_amount
         })) || []),
@@ -176,7 +182,7 @@ export default function AdminMonitoringDashboard() {
           id: payment.id,
           type: 'payment_received' as const,
           description: `Payment received`,
-          entityName: payment.loans?.borrowers ? `${payment.loans.borrowers.first_name} ${payment.loans.borrowers.last_name}` : 'Unknown',
+          entityName: 'Borrower',
           timestamp: payment.created_at,
           amount: payment.amount
         })) || []),
