@@ -22,6 +22,11 @@ export type AuditAction =
   | 'agreement.signed'
   | 'login'
   | 'logout'
+  | 'account.frozen'
+  | 'account.unfrozen'
+  | 'emergency.message_sent'
+  | 'system.lock'
+  | 'system.unlock'
 
 export type EntityType =
   | 'loan'
@@ -33,6 +38,8 @@ export type EntityType =
   | 'report'
   | 'agreement'
   | 'auth'
+  | 'communication'
+  | 'system'
 
 interface AuditLogEntry {
   action: AuditAction

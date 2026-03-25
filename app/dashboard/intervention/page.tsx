@@ -141,7 +141,7 @@ export default function InterventionToolsPage() {
 
       await logAudit({
         action: 'account.frozen',
-        entity_type: 'lender',
+        entity_type: 'auth',
         entity_id: selectedLender.id,
         details: { reason: freezeReason, lender_name: selectedLender.legal_name },
       })
@@ -176,7 +176,7 @@ export default function InterventionToolsPage() {
 
       await logAudit({
         action: 'account.unfrozen',
-        entity_type: 'lender',
+        entity_type: 'auth',
         entity_id: lender.id,
         details: { lender_name: lender.legal_name },
       })
