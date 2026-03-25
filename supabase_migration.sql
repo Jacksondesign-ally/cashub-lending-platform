@@ -676,6 +676,9 @@ ALTER TABLE lender_subscriptions ADD COLUMN IF NOT EXISTS payment_status TEXT DE
 -- Sync plan_type from package_id for existing rows
 UPDATE lender_subscriptions SET plan_type = package_id WHERE plan_type IS NULL;
 
+-- Add billing_cycle column for monthly/annual tracking with correct amounts
+ALTER TABLE lender_subscriptions ADD COLUMN IF NOT EXISTS billing_cycle TEXT DEFAULT 'monthly' CHECK (billing_cycle IN ('monthly', 'annual'));
+
 -- ============================================================
 -- V3: BORROWER INVITES TABLE (lender inviting borrowers)
 -- ============================================================

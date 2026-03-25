@@ -103,8 +103,12 @@ export default function BillingPage() {
     setPlanAssigning(true)
     try {
       const pkg = allPackages.find(p => p.id === assigningPlan.pkg)!
+      const isAnnual = billingCycle === 'annual'
+      const annualMonthlyPrice = Math.round(pkg.price * (1 - ANNUAL_DISCOUNT))
+      const amount = isAnnual ? annualMonthlyPrice * 12 : pkg.price
+      const durationDays = isAnnual ? 365 : 30
       const startDate = new Date().toISOString().split('T')[0]
-      const endDate = new Date(Date.now() + pkg.duration * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      const endDate = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       await supabase.from('lender_subscriptions').upsert({
         lender_id: assigningPlan.lenderId,
         package_id: pkg.id,
@@ -112,14 +116,15 @@ export default function BillingPage() {
         status: 'ACTIVE',
         start_date: startDate,
         end_date: endDate,
-        amount: pkg.price,
+        billing_cycle: billingCycle,
+        amount,
         auto_renew: false,
       }, { onConflict: 'lender_id' })
       await logAudit({
         action: 'settings.updated',
         entity_type: 'settings',
         entity_id: assigningPlan.lenderId,
-        details: { plan: pkg.name, price: pkg.price },
+        details: { plan: pkg.name, billing_cycle: billingCycle, amount, end_date: endDate },
       })
       setAssigningPlan(null)
       await fetchLenderPlans()

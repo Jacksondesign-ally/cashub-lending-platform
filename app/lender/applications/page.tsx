@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { FileText, Search, RefreshCw, Plus, CheckCircle, XCircle, Clock, Eye, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react'
+import { FileText, Search, RefreshCw, Plus, CheckCircle, XCircle, Clock, Eye, ChevronDown, ChevronUp, AlertTriangle, ShieldCheck, X } from 'lucide-react'
 
 type AppStatus = 'pending' | 'approved' | 'rejected' | 'under_review' | 'disbursed' | 'offer_pending'
 
@@ -40,6 +40,8 @@ export default function LenderApplicationsPage() {
   const [showNewModal, setShowNewModal] = useState(false)
   const [form, setForm] = useState({ borrower_first_name: '', borrower_last_name: '', borrower_email: '', loan_amount: '', loan_purpose: '', loan_term: '12' })
   const [saving, setSaving] = useState(false)
+  const [showKycReminder, setShowKycReminder] = useState(false)
+  const [kycBorrowerName, setKycBorrowerName] = useState('')
 
   useEffect(() => { fetchApps() }, [])
 
@@ -86,6 +88,16 @@ export default function LenderApplicationsPage() {
     setActionLoading(id)
     const lenderId = localStorage.getItem('lenderId')
     await supabase.from('loan_applications').update({ status }).eq('id', id)
+    // Show second KYC reminder when approving a borrower
+    if (status === 'approved') {
+      const app = apps.find(a => a.id === id)
+      if (app) {
+        const name = `${app.borrower_first_name || ''} ${app.borrower_last_name || ''}`.trim()
+        setKycBorrowerName(name || 'this borrower')
+        setShowKycReminder(true)
+        setTimeout(() => setShowKycReminder(false), 12000)
+      }
+    }
     // Create a loan record when approving OR disbursing (if not already created)
     if (status === 'approved' || status === 'disbursed') {
       const app = apps.find(a => a.id === id)
@@ -159,6 +171,32 @@ export default function LenderApplicationsPage() {
 
   return (
     <div className="space-y-6">
+      {/* ── Second KYC Floating Reminder ── */}
+      {showKycReminder && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm w-full animate-bounce-once">
+          <div className="bg-white border-l-4 border-amber-500 rounded-xl shadow-2xl p-4 flex items-start gap-3">
+            <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+              <ShieldCheck className="w-5 h-5 text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-neutral-900">Second KYC Required</p>
+              <p className="text-xs text-neutral-600 mt-1">
+                You have approved <span className="font-semibold">{kycBorrowerName}</span>. Please conduct a <strong>second KYC verification</strong> before disbursing funds to strengthen security and reduce fraud risk.
+              </p>
+              <button
+                onClick={() => setShowKycReminder(false)}
+                className="mt-2 text-xs font-medium text-amber-700 hover:text-amber-900 underline"
+              >
+                Acknowledged
+              </button>
+            </div>
+            <button onClick={() => setShowKycReminder(false)} className="flex-shrink-0 text-neutral-400 hover:text-neutral-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-neutral-900">Loan Applications</h2>

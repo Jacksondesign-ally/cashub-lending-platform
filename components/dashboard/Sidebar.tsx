@@ -31,7 +31,9 @@ import {
   UserCheck,
   BookOpen,
   Ban,
-  ClipboardList
+  ClipboardList,
+  Package,
+  Activity
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -39,27 +41,27 @@ interface SidebarProps {
   setOpen: (open: boolean) => void
 }
 
-// ─── SUPER ADMIN MENU (Platform Owner) ────────────────────────────────────────
+// ─── SUPER ADMIN MENU (Platform Overseer) ────────────────────────────────────
+// NOTE: Loans (/dashboard/loans) and Payments (/dashboard/payments) are
+// intentionally excluded from this menu but remain accessible via direct URL
+// for emergency support access (law enforcement / lender support scenarios).
 const superAdminMenu = [
   { id: 'dashboard',    name: 'Dashboard',          href: '/dashboard',                icon: LayoutDashboard, color: 'text-blue-600',   bgColor: 'bg-blue-50' },
   { id: 'lenders',      name: 'Lenders',             href: '/dashboard/lenders',        icon: Building,        color: 'text-violet-600', bgColor: 'bg-violet-50' },
   { id: 'onboarding',  name: 'Lender Onboarding',   href: '/dashboard/onboarding',     icon: UserCheck,       color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
+  { id: 'packages',    name: 'Packages',            href: '/dashboard/packages',       icon: Package,         color: 'text-amber-600',  bgColor: 'bg-amber-50' },
+  { id: 'subscribers', name: 'Subscribers',         href: '/dashboard/subscribers',    icon: Activity,        color: 'text-pink-600',   bgColor: 'bg-pink-50' },
   { id: 'borrowers',   name: 'Borrowers',            href: '/dashboard/borrowers',      icon: Users,           color: 'text-orange-600', bgColor: 'bg-orange-50' },
   { id: 'kyc-review',  name: 'KYC Review',          href: '/dashboard/kyc-review',     icon: FileText,        color: 'text-blue-500',   bgColor: 'bg-blue-50' },
-  { id: 'loans',       name: 'Loans',               href: '/dashboard/loans',          icon: FileText,        color: 'text-green-600',  bgColor: 'bg-green-50' },
-  { id: 'payments',    name: 'Payments',            href: '/dashboard/payments',       icon: CreditCard,      color: 'text-emerald-600',bgColor: 'bg-emerald-50' },
-  { id: 'marketplace', name: 'Marketplace',         href: '/dashboard/marketplace',    icon: Store,           color: 'text-cyan-600',   bgColor: 'bg-cyan-50' },
   { id: 'blacklist',   name: 'Blacklist',           href: '/dashboard/blacklist',      icon: Ban,             color: 'text-red-600',    bgColor: 'bg-red-50' },
   { id: 'scam-alerts', name: 'Scam Alerts',         href: '/dashboard/scam-alerts',    icon: AlertTriangle,   color: 'text-rose-600',   bgColor: 'bg-rose-50' },
   { id: 'disputes',    name: 'Disputes',            href: '/dashboard/disputes',       icon: Gavel,           color: 'text-purple-600', bgColor: 'bg-purple-50' },
   { id: 'registry',    name: 'Shared Registry',     href: '/dashboard/registry',       icon: BookOpen,        color: 'text-teal-600',   bgColor: 'bg-teal-50' },
-  { id: 'reports',     name: 'Reports',             href: '/dashboard/reports',        icon: BarChart3,       color: 'text-pink-600',   bgColor: 'bg-pink-50' },
   { id: 'risk-engine', name: 'Risk Engine',         href: '/dashboard/risk-engine',    icon: TrendingUp,      color: 'text-amber-600',  bgColor: 'bg-amber-50' },
-  { id: 'compliance',  name: 'Compliance',          href: '/dashboard/compliance',     icon: Shield,          color: 'text-blue-700',   bgColor: 'bg-blue-100' },
-  { id: 'billing',     name: 'Billing',             href: '/dashboard/billing',        icon: CreditCard,      color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
   { id: 'audit-logs',  name: 'Audit Logs',          href: '/dashboard/audit-logs',     icon: Database,        color: 'text-slate-600',  bgColor: 'bg-slate-50' },
+  { id: 'audit-reports',name: 'Audit Reports',       href: '/dashboard/audit-reports',  icon: ClipboardList,   color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
   { id: 'settings',    name: 'Settings',            href: '/dashboard/settings',       icon: Settings,        color: 'text-gray-600',   bgColor: 'bg-gray-50' },
-  { id: 'notifications',name: 'Notifications',        href: '/dashboard/notifications',  icon: Bell,            color: 'text-emerald-600',bgColor: 'bg-emerald-50' },
+  { id: 'notifications',name: 'Notifications',       href: '/dashboard/notifications',  icon: Bell,            color: 'text-emerald-600',bgColor: 'bg-emerald-50' },
 ]
 
 // ─── LOAN OFFICER MENU (Lender staff in dashboard scope) ─────────────────────

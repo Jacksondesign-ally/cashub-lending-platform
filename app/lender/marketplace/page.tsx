@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Store, Search, RefreshCw, Plus, ArrowRight, CheckCircle, Clock, XCircle, DollarSign, FileText, Users, Building } from 'lucide-react'
+import { Store, Search, RefreshCw, Plus, ArrowRight, CheckCircle, Clock, XCircle, DollarSign, FileText, Users, Building, ShieldCheck, X } from 'lucide-react'
 
 interface MarketplaceApp {
   id: string
@@ -25,6 +25,8 @@ export default function LenderMarketplacePage() {
   const [acceptingId, setAcceptingId] = useState<string | null>(null)
   const [lenderLogo, setLenderLogo] = useState('')
   const [companyName, setCompanyName] = useState('')
+  const [showKycReminder, setShowKycReminder] = useState(false)
+  const [kycBorrowerName, setKycBorrowerName] = useState('')
 
   useEffect(() => {
     setLenderLogo(localStorage.getItem('lenderLogo') || '')
@@ -93,6 +95,10 @@ export default function LenderMarketplacePage() {
 
     setOpenApps(prev => prev.filter(a => a.id !== id))
     setAcceptingId(null)
+    // Show second KYC reminder after accepting a marketplace application
+    setKycBorrowerName(app.borrower_name || 'this borrower')
+    setShowKycReminder(true)
+    setTimeout(() => setShowKycReminder(false), 12000)
     fetchData()
   }
 
@@ -113,6 +119,29 @@ export default function LenderMarketplacePage() {
 
   return (
     <div className="space-y-6">
+      {/* ── Second KYC Floating Reminder ── */}
+      {showKycReminder && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm w-full">
+          <div className="bg-white border-l-4 border-amber-500 rounded-xl shadow-2xl p-4 flex items-start gap-3">
+            <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+              <ShieldCheck className="w-5 h-5 text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-neutral-900">Second KYC Required</p>
+              <p className="text-xs text-neutral-600 mt-1">
+                You accepted <span className="font-semibold">{kycBorrowerName}</span> from the marketplace. Please conduct a <strong>second KYC verification</strong> before disbursing funds to strengthen security and reduce fraud risk.
+              </p>
+              <button onClick={() => setShowKycReminder(false)} className="mt-2 text-xs font-medium text-amber-700 hover:text-amber-900 underline">
+                Acknowledged
+              </button>
+            </div>
+            <button onClick={() => setShowKycReminder(false)} className="flex-shrink-0 text-neutral-400 hover:text-neutral-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-neutral-200 bg-gradient-to-br from-cashub-500 to-accent-500 flex items-center justify-center flex-shrink-0 shadow-sm">

@@ -78,6 +78,7 @@ interface DisputeEntry {
 export default function SharedRegistry() {
   const [borrowers, setBorrowers] = useState<SharedBorrower[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRisk, setFilterRisk] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -93,6 +94,7 @@ export default function SharedRegistry() {
   const fetchSharedRegistry = async () => {
     try {
       setLoading(true)
+      setFetchError(null)
       
       // Fetch borrowers with their loans, blacklist entries and disputes
       const { data: borrowersData, error: borrowersError } = await supabase
@@ -113,7 +115,11 @@ export default function SharedRegistry() {
         `)
         .order('last_name', { ascending: true })
 
-      if (borrowersError) throw borrowersError
+      if (borrowersError) {
+        console.error('Registry fetch error:', borrowersError)
+        setFetchError(`Failed to load registry: ${borrowersError.message}. ${borrowersError.code === 'PGRST301' ? 'Access denied — check Supabase RLS policies for the borrowers table.' : ''}`)
+        return
+      }
 
       const allLenders = new Map<string, string>()
 
@@ -188,8 +194,9 @@ export default function SharedRegistry() {
 
       setBorrowers(transformedBorrowers)
       setUniqueLendersList(Array.from(allLenders.entries()).map(([id, name]) => ({ id, name })))
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching shared registry:', error)
+      setFetchError(`Unexpected error: ${error?.message || 'Unknown error'}. Please try refreshing.`)
     } finally {
       setLoading(false)
     }
@@ -253,6 +260,20 @@ export default function SharedRegistry() {
           </button>
         </div>
       </div>
+
+      {/* Error Banner */}
+      {fetchError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-red-800">Registry Load Error</p>
+            <p className="text-xs text-red-700 mt-1">{fetchError}</p>
+            <button onClick={fetchSharedRegistry} className="mt-2 text-xs font-medium text-red-600 underline hover:text-red-800">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Registry Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
