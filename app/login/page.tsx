@@ -229,16 +229,15 @@ export default function Login() {
           >
             {/* Background gradient base */}
             <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient}`} />
-            {/* Slide image overlay */}
+            {/* Slide image overlay - increased opacity for visibility */}
             <img
-              src={slide.image}
+              src={`${slide.image}?v=2`}
               alt={slide.title}
-              className="absolute inset-0 w-full h-full object-cover opacity-40"
+              className="absolute inset-0 w-full h-full object-cover opacity-70"
               loading="eager"
               onLoad={() => console.log('[CasHuB Slides] Image loaded:', slide.image)}
               onError={(e) => {
                 console.error('[CasHuB Slides] Image failed to load:', slide.image)
-                // Fallback to gradient if image fails to load
                 const target = e.target as HTMLImageElement
                 target.style.display = 'none'
               }}
