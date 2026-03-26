@@ -8,14 +8,15 @@ import Image from 'next/image'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 
 const DEFAULT_SLIDES = [
-  { image: '/slides/slide1-new.jpg', gradient: 'from-indigo-800 via-indigo-900 to-purple-900',  title: 'Modern Lending Platform',        subtitle: 'Experience the future of microlending with CasHuB platform.' },
-  { image: '/slides/bus.jpg',        gradient: 'from-green-800 via-green-900 to-emerald-900',   title: 'Transport Solutions',           subtitle: 'Quick financing for transport, logistics and business needs.' },
-  { image: '/slides/wear.jpg',       gradient: 'from-amber-800 via-amber-900 to-orange-900',    title: 'Fashion & Retail',             subtitle: 'Flexible payment plans for clothing, accessories and retail.' },
-  { image: '/slides/slide1.jpg',     gradient: 'from-green-800 via-green-900 to-emerald-900',   title: 'Back to School Loans',          subtitle: 'Apply for your loan today. Same day approval and payout guaranteed.' },
-  { image: '/slides/slide2.jpg',     gradient: 'from-blue-800 via-blue-900 to-indigo-900',      title: 'Emergency Cash When You Need', subtitle: 'Quick loans for groceries, school fees, medical bills, or other expenses.' },
-  { image: '/slides/slide3.jpg',     gradient: 'from-teal-700 via-teal-800 to-green-900',       title: 'Build Your Credit History',     subtitle: 'Every repayment improves your score. Access bigger loans over time.' },
-  { image: '/slides/slide1-new.jpg', gradient: 'from-purple-800 via-purple-900 to-indigo-900',  title: 'Flexible Financing Solutions', subtitle: 'Short-term loans, purchase order financing. Borrow up to N$8,000.' },
-  { image: '/slides/bus.jpg',        gradient: 'from-rose-700 via-rose-800 to-red-900',         title: 'Trusted by 1,000+ Borrowers',   subtitle: 'Join the CasHuB network. Fast approvals, fair rates, transparent terms.' },
+  { image: '/slides/slide-team.jpg', gradient: 'from-blue-800 via-blue-900 to-indigo-900', title: 'Your Trusted Lending Partner', subtitle: 'Join thousands of satisfied customers who trust CasHuB for their financial needs.' },
+  { image: '/slides/slide-school.jpg', gradient: 'from-green-800 via-green-900 to-emerald-900', title: 'Back to School Loans', subtitle: 'Get same-day approval for school fees, uniforms, and supplies. Education matters.' },
+  { image: '/slides/slide-van.jpg', gradient: 'from-orange-800 via-orange-900 to-red-900', title: 'Transport & Business Solutions', subtitle: 'Finance for vehicles, equipment, and business expansion. Grow with CasHuB.' },
+  { image: '/slides/slide1-new.jpg', gradient: 'from-indigo-800 via-indigo-900 to-purple-900', title: 'Modern Lending Platform', subtitle: 'Experience the future of microlending with CasHuB platform.' },
+  { image: '/slides/bus.jpg', gradient: 'from-green-800 via-green-900 to-emerald-900', title: 'Transport Solutions', subtitle: 'Quick financing for transport, logistics and business needs.' },
+  { image: '/slides/wear.jpg', gradient: 'from-amber-800 via-amber-900 to-orange-900', title: 'Fashion & Retail', subtitle: 'Flexible payment plans for clothing, accessories and retail.' },
+  { image: '/slides/slide1.jpg', gradient: 'from-green-800 via-green-900 to-emerald-900', title: 'Back to School Loans', subtitle: 'Apply for your loan today. Same day approval and payout guaranteed.' },
+  { image: '/slides/slide2.jpg', gradient: 'from-blue-800 via-blue-900 to-indigo-900', title: 'Emergency Cash When You Need', subtitle: 'Quick loans for groceries, school fees, medical bills, or other expenses.' },
+  { image: '/slides/slide3.jpg', gradient: 'from-teal-700 via-teal-800 to-green-900', title: 'Build Your Credit History', subtitle: 'Every repayment improves your score. Access bigger loans over time.' },
 ]
 
 const INTEREST_RATES = [
