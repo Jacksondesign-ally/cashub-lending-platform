@@ -1,0 +1,10 @@
+1. Lender signs up
+2. Uploads company documents / KYC / licenses
+3. Selects package
+4. Payment proof or online payment
+5. Super Admin reviews application
+6. Approve / Reject / Request more info
+7. Tenant environment is created
+8. Subscription is activated
+9. Lender Admin account becomes live
+10. Lender starts creating staff and borrowers

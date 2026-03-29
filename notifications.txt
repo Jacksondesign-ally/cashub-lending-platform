@@ -1,0 +1,26 @@
+notifications
+- id
+- user_id
+- type
+- title
+- body
+- read_at
+- created_at
+
+audit_logs
+- id
+- actor_user_id
+- tenant_id (nullable)
+- module
+- action
+- entity_type
+- entity_id
+- metadata_json
+- created_at
+
+system_settings
+- id
+- key
+- value_json
+- updated_by_user_id
+- updated_at

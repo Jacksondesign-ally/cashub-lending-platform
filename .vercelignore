@@ -1,0 +1,5 @@
+imported_system/
+*.sql
+*.txt
+AUDIT_REPORT.md
+mermaid-diagram*

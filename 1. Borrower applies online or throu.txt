@@ -1,0 +1,18 @@
+1. Borrower applies online or through lender staff
+2. Lender Admin / Loan Officer reviews application
+3. System checks:
+   - Shared Registry
+   - Existing loans
+   - Outstanding exposure
+   - Blacklist status
+   - Scam alerts
+   - Risk score
+   - Credit score
+4. Lender decides:
+   - Approve
+   - Reject
+   - Pending / request more docs
+5. If approved:
+   - Loan is created under that lender
+   - Shared registry updates
+6. Borrower sees status

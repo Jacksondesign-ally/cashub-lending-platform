@@ -1,0 +1,29 @@
+users
+- id (uuid, pk)
+- email
+- phone
+- password_hash / auth reference
+- full_name
+- avatar_url
+- status
+- created_at
+
+roles
+- id
+- name (super_admin, lender_admin, loan_officer, borrower, etc.)
+
+permissions
+- id
+- code
+- description
+
+role_permissions
+- id
+- role_id
+- permission_id
+
+user_roles
+- id
+- user_id
+- role_id
+- tenant_id (nullable for super admin)

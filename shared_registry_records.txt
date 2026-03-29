@@ -1,0 +1,27 @@
+shared_registry_records
+- id
+- borrower_id
+- tenant_id
+- loan_id
+- exposure_amount
+- outstanding_amount
+- loan_status
+- reported_at
+
+borrower_exposure_summary
+- id
+- borrower_id
+- total_active_loans
+- total_principal
+- total_outstanding
+- total_overdue
+- total_defaulted
+- last_updated_at
+
+borrower_lender_links
+- id
+- borrower_id
+- tenant_id
+- first_loan_date
+- last_activity_date
+- status
