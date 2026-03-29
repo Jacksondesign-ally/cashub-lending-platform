@@ -49,7 +49,7 @@ function SignupContent() {
 
   // Step management (lender has 3 steps, others have 1)
   const [step, setStep] = useState(1)
-  const totalSteps = isLender ? 3 : 1
+  const totalSteps = isLender ? 3 : registrationRole === 'borrower' ? 5 : 1
 
   // Step 1 - Account info
   const [fullName, setFullName] = useState('')
@@ -69,6 +69,25 @@ function SignupContent() {
   // Step 3 - Package (lender only)
   const [selectedPackage, setSelectedPackage] = useState('professional')
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
+
+  // Borrower agreement fields (steps 2-5)
+  const [idNumber, setIdNumber] = useState('')
+  const [postalAddress, setPostalAddress] = useState('')
+  const [residentialAddress, setResidentialAddress] = useState('')
+  const [maritalStatus, setMaritalStatus] = useState('')
+  const [occupation, setOccupation] = useState('')
+  const [employerName, setEmployerName] = useState('')
+  const [employerTel, setEmployerTel] = useState('')
+  const [employerAddress, setEmployerAddress] = useState('')
+  const [payslipEmployeeNo, setPayslipEmployeeNo] = useState('')
+  const [bankName, setBankName] = useState('')
+  const [bankBranch, setBankBranch] = useState('')
+  const [bankAccountNo, setBankAccountNo] = useState('')
+  const [bankAccountType, setBankAccountType] = useState('')
+  const [reference1Name, setReference1Name] = useState('')
+  const [reference1Tel, setReference1Tel] = useState('')
+  const [reference2Name, setReference2Name] = useState('')
+  const [reference2Tel, setReference2Tel] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -198,6 +217,23 @@ function SignupContent() {
           last_name: parts.slice(1).join(' ') || '',
           email: userEmail,
           phone: phone || '',
+          id_number: idNumber || null,
+          postal_address: postalAddress || null,
+          address: residentialAddress || null,
+          marital_status: maritalStatus || null,
+          occupation: occupation || null,
+          employer_name: employerName || null,
+          employer_tel: employerTel || null,
+          employer_address: employerAddress || null,
+          payslip_employee_no: payslipEmployeeNo || null,
+          bank_name: bankName || null,
+          bank_branch: bankBranch || null,
+          bank_account_no: bankAccountNo || null,
+          bank_account_type: bankAccountType || null,
+          reference1_name: reference1Name || null,
+          reference1_tel: reference1Tel || null,
+          reference2_name: reference2Name || null,
+          reference2_tel: reference2Tel || null,
           status: 'active',
         })
         if (borrowerErr && !borrowerErr.message.includes('duplicate') && !borrowerErr.message.includes('unique')) {
@@ -222,7 +258,7 @@ function SignupContent() {
     }
   }
 
-  const stepLabels = ['Account', 'Company', 'Package']
+  const stepLabels = isLender ? ['Account', 'Company', 'Package'] : ['Account', 'Personal', 'Employment', 'Banking', 'References']
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cashub-600 via-cashub-700 to-emerald-800 flex items-center justify-center py-10 px-4 relative overflow-hidden">
@@ -241,15 +277,15 @@ function SignupContent() {
           <h2 className="mt-3 text-2xl font-extrabold text-white">
             {registrationRole === 'super_admin' ? 'Admin Access Request' : isLender ? 'Lender Registration' : 'Borrower Registration'}
           </h2>
-          {isLender && (
+          {(isLender || registrationRole === 'borrower') && (
             <p className="mt-1 text-sm text-emerald-100">
-              Step {step} of {totalSteps} — {stepLabels[step - 1]}
+              Step {step} of {totalSteps} — {stepLabels[step - 1] || ''}
             </p>
           )}
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-6">
-          {isLender && <StepIndicator step={step} total={totalSteps} />}
+          {(isLender || registrationRole === 'borrower') && <StepIndicator step={step} total={totalSteps} />}
 
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
@@ -274,27 +310,130 @@ function SignupContent() {
               <Input icon={Lock} label="Password" required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 characters" />
               <Input icon={Lock} label="Confirm Password" required type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter password" />
 
-              {!isLender && (
-                <div className="flex items-center gap-2">
-                  <input id="terms" type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} className="h-4 w-4 text-cashub-600 border-neutral-300 rounded" />
-                  <label htmlFor="terms" className="text-xs text-neutral-600">I accept the CasHuB terms, privacy policy and NAMFISA regulations</label>
-                </div>
-              )}
+              <button type="button" onClick={handleNext}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-xl text-sm font-semibold transition-all">
+                Continue <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
-              {isLender ? (
-                <button type="button" onClick={handleNext}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-xl text-sm font-semibold transition-all">
+          {/* ─── STEP 2 BORROWER: Personal Info ─── */}
+          {step === 2 && !isLender && registrationRole === 'borrower' && (
+            <div className="space-y-4">
+              <p className="text-xs text-neutral-500 font-medium">Personal Information — used to auto-fill your loan agreement</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Input icon={Shield} label="ID / Passport No" required type="text" value={idNumber} onChange={e => setIdNumber(e.target.value)} placeholder="e.g. 00010100123" />
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">Marital Status</label>
+                  <select value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)}
+                    className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-cashub-500 text-neutral-900">
+                    <option value="">Select...</option>
+                    <option>Single</option><option>Married</option><option>Divorced</option><option>Widowed</option>
+                  </select>
+                </div>
+              </div>
+              <Input icon={MapPin} label="Postal Address" type="text" value={postalAddress} onChange={e => setPostalAddress(e.target.value)} placeholder="P.O. Box 1234, Windhoek" />
+              <Input icon={MapPin} label="Residential Address" type="text" value={residentialAddress} onChange={e => setResidentialAddress(e.target.value)} placeholder="123 Main Street, Windhoek" />
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => { setError(''); setStep(1) }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-neutral-300 text-neutral-700 rounded-xl text-sm font-semibold hover:bg-neutral-50">
+                  <ChevronLeft className="w-4 h-4" /> Back
+                </button>
+                <button type="button" onClick={() => { setError(''); setStep(3) }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-xl text-sm font-semibold">
                   Continue <ChevronRight className="w-4 h-4" />
                 </button>
-              ) : (
-                <form onSubmit={handleSubmit}>
-                  <button type="submit" disabled={loading || !acceptedTerms}
-                    className="w-full py-2.5 bg-gradient-to-r from-cashub-600 to-emerald-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition-all">
-                    {loading ? 'Creating account...' : registrationRole === 'super_admin' ? 'Request Admin Access' : 'Register as Borrower'}
-                  </button>
-                </form>
-              )}
+              </div>
             </div>
+          )}
+
+          {/* ─── STEP 3 BORROWER: Employment ─── */}
+          {step === 3 && !isLender && registrationRole === 'borrower' && (
+            <div className="space-y-4">
+              <p className="text-xs text-neutral-500 font-medium">Employment Details</p>
+              <Input icon={FileText} label="Occupation" type="text" value={occupation} onChange={e => setOccupation(e.target.value)} placeholder="e.g. Teacher, Nurse" />
+              <Input icon={Building} label="Employer Name" type="text" value={employerName} onChange={e => setEmployerName(e.target.value)} placeholder="e.g. Ministry of Education" />
+              <div className="grid grid-cols-2 gap-3">
+                <Input icon={Phone} label="Employer Tel" type="tel" value={employerTel} onChange={e => setEmployerTel(e.target.value)} placeholder="+264 61 000 0000" />
+                <Input icon={FileText} label="Payslip / Employee No" type="text" value={payslipEmployeeNo} onChange={e => setPayslipEmployeeNo(e.target.value)} placeholder="e.g. EMP12345" />
+              </div>
+              <Input icon={MapPin} label="Employer Address" type="text" value={employerAddress} onChange={e => setEmployerAddress(e.target.value)} placeholder="Employer street address" />
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => { setError(''); setStep(2) }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-neutral-300 text-neutral-700 rounded-xl text-sm font-semibold hover:bg-neutral-50">
+                  <ChevronLeft className="w-4 h-4" /> Back
+                </button>
+                <button type="button" onClick={() => { setError(''); setStep(4) }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-xl text-sm font-semibold">
+                  Continue <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ─── STEP 4 BORROWER: Banking ─── */}
+          {step === 4 && !isLender && registrationRole === 'borrower' && (
+            <div className="space-y-4">
+              <p className="text-xs text-neutral-500 font-medium">Banking Details</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Input icon={CreditCard} label="Bank Name" type="text" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. FNB, Standard Bank" />
+                <Input icon={CreditCard} label="Branch" type="text" value={bankBranch} onChange={e => setBankBranch(e.target.value)} placeholder="e.g. Windhoek" />
+              </div>
+              <Input icon={CreditCard} label="Account Number" type="text" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} placeholder="Your bank account number" />
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Account Type</label>
+                <select value={bankAccountType} onChange={e => setBankAccountType(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-cashub-500 text-neutral-900">
+                  <option value="">Select...</option>
+                  <option>Cheque</option><option>Savings</option><option>Transmission</option>
+                </select>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => { setError(''); setStep(3) }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-neutral-300 text-neutral-700 rounded-xl text-sm font-semibold hover:bg-neutral-50">
+                  <ChevronLeft className="w-4 h-4" /> Back
+                </button>
+                <button type="button" onClick={() => { setError(''); setStep(5) }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-xl text-sm font-semibold">
+                  Continue <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ─── STEP 5 BORROWER: References + Submit ─── */}
+          {step === 5 && !isLender && registrationRole === 'borrower' && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <p className="text-xs text-neutral-500 font-medium">Personal References</p>
+              <div className="bg-neutral-50 rounded-xl p-4 space-y-3">
+                <p className="text-xs font-semibold text-neutral-700">Reference 1</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input icon={User} label="Full Name" type="text" value={reference1Name} onChange={e => setReference1Name(e.target.value)} placeholder="Reference name" />
+                  <Input icon={Phone} label="Tel No" type="tel" value={reference1Tel} onChange={e => setReference1Tel(e.target.value)} placeholder="+264 81 000 0000" />
+                </div>
+              </div>
+              <div className="bg-neutral-50 rounded-xl p-4 space-y-3">
+                <p className="text-xs font-semibold text-neutral-700">Reference 2</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input icon={User} label="Full Name" type="text" value={reference2Name} onChange={e => setReference2Name(e.target.value)} placeholder="Reference name" />
+                  <Input icon={Phone} label="Tel No" type="tel" value={reference2Tel} onChange={e => setReference2Tel(e.target.value)} placeholder="+264 81 000 0000" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input id="terms-b" type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} className="h-4 w-4 text-cashub-600 border-neutral-300 rounded" />
+                <label htmlFor="terms-b" className="text-xs text-neutral-600">I accept the CasHuB terms, privacy policy and NAMFISA regulations</label>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => { setError(''); setStep(4) }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-neutral-300 text-neutral-700 rounded-xl text-sm font-semibold hover:bg-neutral-50">
+                  <ChevronLeft className="w-4 h-4" /> Back
+                </button>
+                <button type="submit" disabled={loading || !acceptedTerms}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-cashub-600 to-emerald-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50">
+                  {loading ? 'Creating account...' : 'Complete Registration'}
+                </button>
+              </div>
+            </form>
           )}
 
           {/* ─── STEP 2: Company Info (lender only) ─── */}
