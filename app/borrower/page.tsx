@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -9,7 +9,8 @@ import {
   Shield, AlertCircle, CheckCircle, Gavel, DollarSign, User, Clock,
   FileText, CreditCard, TrendingUp, Activity, LogOut, Bell,
   Calendar, Phone, Mail, MapPin, Eye, ChevronRight, Plus, Building,
-  Star, Search, Send, Upload, XCircle, Info, Pen, Store, RefreshCw
+  Star, Search, Send, Upload, XCircle, Info, Pen, Store, RefreshCw,
+  Save, Briefcase, Users
 } from 'lucide-react'
 
 type BorrowerLoan = {
@@ -107,6 +108,24 @@ export default function BorrowerPortalPage() {
   const [kycComplete, setKycComplete] = useState(false)
   const [borrowerProfile, setBorrowerProfile] = useState<{ id_number?: string; phone?: string; address?: string; city?: string; region?: string; employment_status?: string; monthly_income?: number; member_since?: string } | null>(null)
 
+  // Editable profile / agreement fields
+  const [borrowerId, setBorrowerId] = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileSaved, setProfileSaved] = useState(false)
+  const [profileTab, setProfileTab] = useState<'personal'|'employment'|'banking'|'references'|'signature'>('personal')
+  const [pForm, setPForm] = useState({
+    id_number: '', postal_address: '', address: '', marital_status: '',
+    occupation: '', employer_name: '', employer_tel: '', employer_address: '', payslip_employee_no: '',
+    bank_name: '', bank_branch: '', bank_account_no: '', bank_account_type: '',
+    reference1_name: '', reference1_tel: '', reference2_name: '', reference2_tel: '',
+  })
+  const [sigUrl, setSigUrl] = useState('')
+  const [sigMethod, setSigMethod] = useState<'draw'|'upload'>('draw')
+  const [isSigDrawing, setIsSigDrawing] = useState(false)
+  const [hasSig, setHasSig] = useState(false)
+  const sigRef = useRef<HTMLCanvasElement>(null)
+  const setP = (k: string, v: string) => setPForm(p => ({ ...p, [k]: v }))
+
   // Blacklist state
   const [blacklistEntries, setBlacklistEntries] = useState<BlacklistEntry[]>([])
   const [showDisputeModal, setShowDisputeModal] = useState(false)
@@ -146,11 +165,33 @@ export default function BorrowerPortalPage() {
         // Get borrower record — full profile for KYC check + data isolation
         const { data: borrowerRec } = await supabase
           .from('borrowers')
-          .select('id, id_number, phone, address, city, region, employment_status, monthly_income, created_at')
+          .select('*')
           .eq('email', email)
           .maybeSingle()
         const borrowerId = borrowerRec?.id || null
         if (borrowerRec) {
+          setBorrowerId(borrowerRec.id || '')
+          setSigUrl((borrowerRec as any).signature_url || '')
+          setHasSig(!!(borrowerRec as any).signature_url)
+          setPForm({
+            id_number: borrowerRec.id_number || '',
+            postal_address: (borrowerRec as any).postal_address || '',
+            address: borrowerRec.address || '',
+            marital_status: (borrowerRec as any).marital_status || '',
+            occupation: (borrowerRec as any).occupation || '',
+            employer_name: (borrowerRec as any).employer_name || '',
+            employer_tel: (borrowerRec as any).employer_tel || '',
+            employer_address: (borrowerRec as any).employer_address || '',
+            payslip_employee_no: (borrowerRec as any).payslip_employee_no || '',
+            bank_name: (borrowerRec as any).bank_name || '',
+            bank_branch: (borrowerRec as any).bank_branch || '',
+            bank_account_no: (borrowerRec as any).bank_account_no || '',
+            bank_account_type: (borrowerRec as any).bank_account_type || '',
+            reference1_name: (borrowerRec as any).reference1_name || '',
+            reference1_tel: (borrowerRec as any).reference1_tel || '',
+            reference2_name: (borrowerRec as any).reference2_name || '',
+            reference2_tel: (borrowerRec as any).reference2_tel || '',
+          })
           setBorrowerProfile({
             id_number: borrowerRec.id_number || '',
             phone: borrowerRec.phone || '',
@@ -1047,7 +1088,22 @@ export default function BorrowerPortalPage() {
         {/* Profile Tab */}
         {activeTab === 'profile' && (
           <div className="space-y-4">
-            <h3 className="text-lg font-bold text-neutral-900">My Profile</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-neutral-900">My Profile</h3>
+              <button onClick={async () => {
+                if (!borrowerId) return
+                setProfileSaving(true)
+                await supabase.from('borrowers').update({ ...pForm, signature_url: sigUrl || null }).eq('id', borrowerId)
+                setProfileSaved(true); setTimeout(() => setProfileSaved(false), 3000)
+                setProfileSaving(false)
+              }} disabled={profileSaving}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50">
+                {profileSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : profileSaved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                {profileSaving ? 'Saving...' : profileSaved ? 'Saved!' : 'Save Changes'}
+              </button>
+            </div>
+            {profileSaved && <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm text-emerald-700 flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Your information has been saved and will auto-fill future loan agreements.</div>}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-800"><strong>Tip:</strong> Keep your details up to date — they will automatically fill your loan agreement when approved.</div>
             <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
               <div className="flex items-center gap-4 mb-6">
                 <div className="relative">
@@ -1095,6 +1151,118 @@ export default function BorrowerPortalPage() {
                 <ProfileField icon={Calendar} label="Member Since" value={borrowerProfile?.member_since || 'Unknown'} />
                 <ProfileField icon={TrendingUp} label="Credit Score" value={creditData ? `${creditData.score} / 100 (${creditData.risk_level})` : 'Not assessed'} />
                 <ProfileField icon={Shield} label="National ID" value={borrowerProfile?.id_number || '⚠ Not on file — contact your lender'} />
+              </div>
+            </div>
+
+            {/* ── AGREEMENT INFO EDITOR ── */}
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+              <div className="border-b border-neutral-100 px-5 py-3">
+                <p className="text-sm font-bold text-neutral-900">Agreement Information</p>
+                <p className="text-xs text-neutral-400">Used to auto-fill your loan agreement</p>
+              </div>
+              {/* Sub-tabs */}
+              <div className="flex gap-1 p-2 bg-neutral-50 border-b border-neutral-100 overflow-x-auto">
+                {([['personal','Personal',User],['employment','Employment',Briefcase],['banking','Banking',CreditCard],['references','References',Users],['signature','Signature',Pen]] as const).map(([t,label,Icon]) => (
+                  <button key={t} onClick={() => setProfileTab(t)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${profileTab===t?'bg-emerald-600 text-white':'text-neutral-500 hover:bg-neutral-200'}`}>
+                    <Icon className="w-3.5 h-3.5" />{label}
+                  </button>
+                ))}
+              </div>
+              <div className="p-5">
+                {profileTab === 'personal' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {([['id_number','ID / Passport No','text'],['marital_status','','select'],['postal_address','Postal Address','text'],['address','Residential Address','text']] as const).map(([k,,type]) => (
+                      k === 'marital_status' ? (
+                        <div key={k}><label className="block text-xs font-medium text-neutral-600 mb-1">Marital Status</label>
+                          <select value={pForm.marital_status} onChange={e => setP('marital_status', e.target.value)}
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                            <option value="">Select...</option><option>Single</option><option>Married</option><option>Divorced</option><option>Widowed</option>
+                          </select></div>
+                      ) : (
+                        <div key={k}><label className="block text-xs font-medium text-neutral-600 mb-1">{k==='id_number'?'ID / Passport No':k==='postal_address'?'Postal Address':'Residential Address'}</label>
+                          <input type="text" value={pForm[k as keyof typeof pForm]} onChange={e => setP(k, e.target.value)}
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500" /></div>
+                      )
+                    ))}
+                  </div>
+                )}
+                {profileTab === 'employment' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[['occupation','Occupation'],['employer_name','Employer Name'],['employer_tel','Employer Tel'],['payslip_employee_no','Payslip / Employee No'],['employer_address','Employer Address']].map(([k,label]) => (
+                      <div key={k}><label className="block text-xs font-medium text-neutral-600 mb-1">{label}</label>
+                        <input type="text" value={pForm[k as keyof typeof pForm]} onChange={e => setP(k, e.target.value)}
+                          className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500" /></div>
+                    ))}
+                  </div>
+                )}
+                {profileTab === 'banking' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[['bank_name','Bank Name'],['bank_branch','Branch'],['bank_account_no','Account Number']].map(([k,label]) => (
+                      <div key={k}><label className="block text-xs font-medium text-neutral-600 mb-1">{label}</label>
+                        <input type="text" value={pForm[k as keyof typeof pForm]} onChange={e => setP(k, e.target.value)}
+                          className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500" /></div>
+                    ))}
+                    <div><label className="block text-xs font-medium text-neutral-600 mb-1">Account Type</label>
+                      <select value={pForm.bank_account_type} onChange={e => setP('bank_account_type', e.target.value)}
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        <option value="">Select...</option><option>Cheque</option><option>Savings</option><option>Transmission</option>
+                      </select></div>
+                  </div>
+                )}
+                {profileTab === 'references' && (
+                  <div className="space-y-4">
+                    {[{n:'1',nk:'reference1_name' as const,tk:'reference1_tel' as const},{n:'2',nk:'reference2_name' as const,tk:'reference2_tel' as const}].map(r => (
+                      <div key={r.n} className="bg-neutral-50 rounded-lg p-4 space-y-3">
+                        <p className="text-xs font-bold text-neutral-700">Reference {r.n}</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><label className="block text-xs font-medium text-neutral-600 mb-1">Full Name</label>
+                            <input type="text" value={pForm[r.nk]} onChange={e => setP(r.nk, e.target.value)}
+                              className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500" /></div>
+                          <div><label className="block text-xs font-medium text-neutral-600 mb-1">Tel No</label>
+                            <input type="tel" value={pForm[r.tk]} onChange={e => setP(r.tk, e.target.value)}
+                              className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500" /></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {profileTab === 'signature' && (
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      {([['draw','Draw',Pen],['upload','Upload Photo',Upload]] as const).map(([m,label,Icon]) => (
+                        <button key={m} onClick={() => setSigMethod(m)}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${sigMethod===m?'border-emerald-500 bg-emerald-50 text-emerald-700':'border-neutral-200 text-neutral-500'}`}>
+                          <Icon className="w-4 h-4" />{label}
+                        </button>
+                      ))}
+                    </div>
+                    {sigUrl && <div className="flex items-center gap-3"><img src={sigUrl} alt="Current signature" className="h-14 object-contain border border-neutral-200 rounded" /><p className="text-xs text-emerald-600 font-medium">Current signature on file</p></div>}
+                    {sigMethod === 'draw' && (
+                      <div>
+                        <p className="text-xs text-neutral-500 mb-2">Draw your signature below:</p>
+                        <div className="border-2 border-dashed border-neutral-300 rounded-xl bg-neutral-50 overflow-hidden">
+                          <canvas ref={sigRef} width={500} height={130} className="w-full cursor-crosshair touch-none"
+                            onMouseDown={e => { const c=sigRef.current;if(!c)return;setIsSigDrawing(true);const r=c.getBoundingClientRect();const ctx=c.getContext('2d')!;ctx.beginPath();ctx.moveTo(e.clientX-r.left,e.clientY-r.top) }}
+                            onMouseMove={e => { if(!isSigDrawing)return;const c=sigRef.current;if(!c)return;const ctx=c.getContext('2d')!;const r=c.getBoundingClientRect();ctx.lineWidth=2;ctx.lineCap='round';ctx.strokeStyle='#1a1a1a';ctx.lineTo(e.clientX-r.left,e.clientY-r.top);ctx.stroke();setHasSig(true) }}
+                            onMouseUp={() => setIsSigDrawing(false)} onMouseLeave={() => setIsSigDrawing(false)} />
+                        </div>
+                        <div className="flex justify-between mt-1">
+                          <button onClick={() => { const c=sigRef.current;if(!c)return;c.getContext('2d')!.clearRect(0,0,c.width,c.height);setHasSig(false) }} className="text-xs text-red-500">Clear</button>
+                          <button onClick={() => { const c=sigRef.current;if(!c)return;setSigUrl(c.toDataURL('image/png')) }} disabled={!hasSig}
+                            className="text-xs text-emerald-600 font-semibold disabled:opacity-40">Use this signature ✓</button>
+                        </div>
+                      </div>
+                    )}
+                    {sigMethod === 'upload' && (
+                      <label className="block border-2 border-dashed border-neutral-300 rounded-xl p-6 text-center cursor-pointer hover:border-emerald-400 transition-all">
+                        {sigUrl ? <img src={sigUrl} alt="Signature" className="h-16 object-contain mx-auto" />
+                          : <div className="space-y-1"><Upload className="w-6 h-6 text-neutral-400 mx-auto" /><p className="text-sm text-neutral-500">Click to upload signature</p><p className="text-xs text-neutral-400">JPG or PNG</p></div>}
+                        <input type="file" accept="image/*" className="hidden" onChange={e => { const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{setSigUrl(ev.target?.result as string);setHasSig(true)};r.readAsDataURL(f) }} />
+                      </label>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
