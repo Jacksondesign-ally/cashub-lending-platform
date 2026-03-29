@@ -42,8 +42,40 @@ export default function LenderApplicationsPage() {
   const [saving, setSaving] = useState(false)
   const [showKycReminder, setShowKycReminder] = useState(false)
   const [kycBorrowerName, setKycBorrowerName] = useState('')
+  const [borrowerSearch, setBorrowerSearch] = useState('')
+  const [borrowerResults, setBorrowerResults] = useState<any[]>([])
+  const [borrowerLookupLoading, setBorrowerLookupLoading] = useState(false)
+  const [autofillMsg, setAutofillMsg] = useState('')
 
   useEffect(() => { fetchApps() }, [])
+
+  const lookupBorrower = async (query: string) => {
+    if (!query.trim() || query.length < 2) { setBorrowerResults([]); return }
+    setBorrowerLookupLoading(true)
+    const lenderId = localStorage.getItem('lenderId')
+    try {
+      let q = supabase.from('borrowers').select('id, first_name, last_name, email, phone, id_number').limit(5)
+      if (lenderId) q = q.eq('lender_id', lenderId)
+      // Search by name, email, or ID
+      q = q.or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,id_number.ilike.%${query}%,email.ilike.%${query}%`)
+      const { data } = await q
+      setBorrowerResults(data || [])
+    } catch { setBorrowerResults([]) }
+    setBorrowerLookupLoading(false)
+  }
+
+  const autofillBorrower = (b: any) => {
+    setForm(p => ({
+      ...p,
+      borrower_first_name: b.first_name || '',
+      borrower_last_name: b.last_name || '',
+      borrower_email: b.email || '',
+    }))
+    setBorrowerSearch(`${b.first_name} ${b.last_name}`)
+    setBorrowerResults([])
+    setAutofillMsg(`✓ Autofilled from existing borrower: ${b.first_name} ${b.last_name}`)
+    setTimeout(() => setAutofillMsg(''), 4000)
+  }
 
   const fetchApps = async () => {
     setLoading(true)
@@ -320,25 +352,56 @@ export default function LenderApplicationsPage() {
 
       {showNewModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-neutral-900">New Loan Application</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { key: 'borrower_first_name', label: 'First Name *', type: 'text', col: 1 },
-                { key: 'borrower_last_name', label: 'Last Name', type: 'text', col: 1 },
-                { key: 'borrower_email', label: 'Email', type: 'email', col: 2 },
-                { key: 'loan_amount', label: 'Loan Amount (N$) *', type: 'number', col: 1 },
-                { key: 'loan_term', label: 'Term (months)', type: 'number', col: 1 },
-                { key: 'loan_purpose', label: 'Loan Purpose', type: 'text', col: 2 },
-              ].map(f => (
-                <div key={f.key} className={f.col === 2 ? 'col-span-2' : ''}>
-                  <label className="block text-xs font-medium text-neutral-700 mb-1">{f.label}</label>
-                  <input type={f.type} value={(form as any)[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-cashub-500" />
+
+            {/* Borrower Autofill Search */}
+            <div>
+              <label className="block text-xs font-medium text-neutral-700 mb-1">Search Existing Borrower (autofill)</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={borrowerSearch}
+                  onChange={e => { setBorrowerSearch(e.target.value); lookupBorrower(e.target.value) }}
+                  placeholder="Type name, ID number, or email..."
+                  className="w-full px-3 py-2 border border-cashub-300 rounded-lg text-sm focus:ring-2 focus:ring-cashub-500 bg-cashub-50"
+                />
+                {borrowerLookupLoading && <span className="absolute right-3 top-2.5 text-xs text-neutral-400">Searching...</span>}
+              </div>
+              {borrowerResults.length > 0 && (
+                <div className="mt-1 border border-neutral-200 rounded-xl overflow-hidden shadow-lg z-50">
+                  {borrowerResults.map(b => (
+                    <button key={b.id} onClick={() => autofillBorrower(b)}
+                      className="w-full text-left px-3 py-2 hover:bg-cashub-50 text-sm border-b border-neutral-100 last:border-0">
+                      <span className="font-medium">{b.first_name} {b.last_name}</span>
+                      <span className="text-xs text-neutral-400 ml-2">{b.id_number || b.email || ''}</span>
+                    </button>
+                  ))}
                 </div>
-              ))}
+              )}
+              {autofillMsg && <p className="text-xs text-emerald-600 mt-1 font-medium">{autofillMsg}</p>}
+            </div>
+
+            <div className="border-t border-neutral-100 pt-2">
+              <p className="text-xs text-neutral-400 mb-3">Or fill in manually below:</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'borrower_first_name', label: 'First Name *', type: 'text', col: 1 },
+                  { key: 'borrower_last_name', label: 'Last Name', type: 'text', col: 1 },
+                  { key: 'borrower_email', label: 'Email', type: 'email', col: 2 },
+                  { key: 'loan_amount', label: 'Loan Amount (N$) *', type: 'number', col: 1 },
+                  { key: 'loan_term', label: 'Term (months)', type: 'number', col: 1 },
+                  { key: 'loan_purpose', label: 'Loan Purpose', type: 'text', col: 2 },
+                ].map(f => (
+                  <div key={f.key} className={f.col === 2 ? 'col-span-2' : ''}>
+                    <label className="block text-xs font-medium text-neutral-700 mb-1">{f.label}</label>
+                    <input type={f.type} value={(form as any)[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-cashub-500" />
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowNewModal(false)} className="flex-1 px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 rounded-lg text-sm font-medium">Cancel</button>
+              <button onClick={() => { setShowNewModal(false); setBorrowerSearch(''); setBorrowerResults([]); setAutofillMsg('') }} className="flex-1 px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 rounded-lg text-sm font-medium">Cancel</button>
               <button onClick={submitNewApp} disabled={saving} className="flex-1 px-4 py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50">
                 {saving ? 'Submitting...' : 'Submit Application'}
               </button>

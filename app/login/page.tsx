@@ -49,17 +49,26 @@ export default function Login() {
 
   useEffect(() => {
     setEnvOk(isSupabaseConfigured)
+    // Try localStorage first (fastest)
     try {
       const custom = localStorage.getItem('loginSlides')
-      if (custom) { 
-        const parsed = JSON.parse(custom); 
-        if (parsed?.length) {
-          console.log('[CasHuB Slides] Loading custom slides from localStorage:', parsed)
-          setSlideImages(parsed)
-        }
+      if (custom) {
+        const parsed = JSON.parse(custom)
+        if (parsed?.length) setSlideImages(parsed)
       }
-    } catch (err) { console.error('Login slides parse error:', err) }
-    console.log('[CasHuB Slides] Using default slides:', DEFAULT_SLIDES)
+    } catch {}
+    // Also fetch from DB to get latest branding
+    supabase.from('system_settings').select('value').eq('key', 'login_slides').maybeSingle().then(({ data }) => {
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value)
+          if (parsed?.length) {
+            setSlideImages(parsed)
+            localStorage.setItem('loginSlides', data.value)
+          }
+        } catch {}
+      }
+    })
   }, [])
 
   // Auto-advance slides

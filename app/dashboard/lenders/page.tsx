@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { Building, Search, CheckCircle, Ban, RefreshCw, Phone, Mail, Globe, MapPin, ChevronDown, ChevronUp, Users, Calendar, AlertTriangle, Shield, UserPlus, Send, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Building, Search, CheckCircle, Ban, RefreshCw, Phone, Mail, Globe, MapPin, ChevronDown, ChevronUp, Users, Calendar, AlertTriangle, Shield, UserPlus, Send, ChevronLeft, ChevronRight, Trash2, Edit } from 'lucide-react'
 import { logAudit } from '@/lib/audit-logger'
 
 interface Lender {
@@ -32,6 +32,7 @@ export default function LendersPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 10
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => { fetchLenders() }, [])
 
@@ -43,6 +44,20 @@ export default function LendersPage() {
       else setLenders([])
     } catch (err) { console.error('[CasHuB Error]', err); setLenders([]) }
     setLoading(false)
+  }
+
+  const deleteLender = async (id: string, companyName: string) => {
+    if (!confirm(`Permanently delete lender "${companyName}"? All their data will remain in the database but they will be removed from the platform.`)) return
+    setDeletingId(id)
+    await supabase.from('lenders').update({ is_active: false }).eq('id', id)
+    await logAudit({
+      action: 'settings.updated',
+      entity_type: 'staff',
+      entity_id: id,
+      details: { company_name: companyName, action: 'deleted' },
+    })
+    setLenders(prev => prev.filter(l => l.id !== id))
+    setDeletingId(null)
   }
 
   const toggleActive = async (id: string, current: boolean, companyName: string) => {
@@ -187,6 +202,14 @@ export default function LendersPage() {
                   >
                     {actionLoading === lender.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : lender.is_active ? <Ban className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5" />}
                     {lender.is_active ? 'Suspend Lender' : 'Reactivate Lender'}
+                  </button>
+                  <button
+                    onClick={() => deleteLender(lender.id, lender.company_name)}
+                    disabled={deletingId === lender.id}
+                    className="w-full py-2 rounded-lg text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    {deletingId === lender.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    Remove from Platform
                   </button>
                 </div>
               </div>

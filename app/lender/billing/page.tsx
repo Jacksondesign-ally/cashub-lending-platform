@@ -28,8 +28,12 @@ export default function LenderBillingPage() {
     if (lenderId) {
       supabase.from('lender_subscriptions').select('*').eq('lender_id', lenderId).order('created_at', { ascending: false }).then(({ data }) => {
         if (data && data.length > 0) {
-          setCurrentPlan(data[0].plan_type || data[0].package_id || 'professional')
+          const plan = data[0].plan_type || data[0].package_id || 'professional'
+          setCurrentPlan(plan)
+          // Sync plan to localStorage so other pages (branches, staff limits, etc.) always have correct plan
+          localStorage.setItem('lenderPlan', plan)
           setStatus((data[0].status || 'active').toLowerCase() as 'active' | 'trial' | 'suspended')
+          setBillingCycle(data[0].billing_cycle || 'monthly')
           setInvoices(data.map((d: any) => ({ id: d.id, date: d.created_at?.split('T')[0], plan: d.plan_type || d.package_id || 'professional', amount: d.amount || 350, status: d.payment_status || 'paid' })))
         }
       })

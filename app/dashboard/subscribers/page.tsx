@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import Link from 'next/link'
 import {
   Activity, Users, DollarSign, TrendingUp, AlertCircle,
-  RefreshCw, Calendar, CheckCircle, XCircle, Clock, Search
+  RefreshCw, Calendar, CheckCircle, XCircle, Clock, Search, Package, ArrowRight
 } from 'lucide-react'
 
 interface SubscriberRecord {
   id: string
+  company_name: string
   legal_name: string
   registration_number: string
   email: string
@@ -36,9 +38,9 @@ export default function SubscribersPage() {
     try {
       const { data: lendersData, error: lErr } = await supabase
         .from('lenders')
-        .select('id, legal_name, registration_number, email')
+        .select('id, company_name, legal_name, registration_number, email')
         .eq('is_active', true)
-        .order('legal_name')
+        .order('company_name')
 
       if (lErr) throw lErr
 
@@ -58,6 +60,7 @@ export default function SubscribersPage() {
         const daysRemaining = endDate ? Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0
         return {
           id: l.id,
+          company_name: l.company_name || l.legal_name,
           legal_name: l.legal_name,
           registration_number: l.registration_number,
           email: l.email || '',
@@ -79,7 +82,7 @@ export default function SubscribersPage() {
   }
 
   const filtered = subscribers.filter(s => {
-    const matchSearch = s.legal_name.toLowerCase().includes(search.toLowerCase()) ||
+    const matchSearch = (s.company_name || s.legal_name).toLowerCase().includes(search.toLowerCase()) ||
       s.registration_number.toLowerCase().includes(search.toLowerCase()) ||
       s.email.toLowerCase().includes(search.toLowerCase())
     const matchStatus = filterStatus === 'all' || s.status === filterStatus
@@ -94,6 +97,18 @@ export default function SubscribersPage() {
   const monthlyFromAnnual = Math.round(totalAnnualRevenue / 12)
   const totalMRR = totalMonthlyRevenue + monthlyFromAnnual
   const expiringSoon = subscribers.filter(s => s.status === 'ACTIVE' && s.days_remaining > 0 && s.days_remaining <= 14)
+
+  // Enterprise/Professional lenders on monthly — could save 20% if converted to annual
+  const ANNUAL_PRICES: Record<string, number> = { Enterprise: 4800, Professional: 3360, Starter: 2400 }
+  const MONTHLY_PRICES: Record<string, number> = { Enterprise: 500, Professional: 350, Starter: 250 }
+  const upgradeCandidates = subscribers.filter(s =>
+    s.status === 'ACTIVE' &&
+    s.billing_cycle !== 'annual' &&
+    (s.package_name === 'Enterprise' || s.package_name === 'Professional')
+  )
+  const potentialAnnualRevenue = upgradeCandidates.reduce((sum, s) => sum + (ANNUAL_PRICES[s.package_name] || 0), 0)
+  const currentAnnualisedRevenue = upgradeCandidates.reduce((sum, s) => sum + ((MONTHLY_PRICES[s.package_name] || 0) * 12), 0)
+  const annualSaving = potentialAnnualRevenue - currentAnnualisedRevenue
 
   const statusColor = (status: string) => {
     switch (status) {
@@ -208,6 +223,32 @@ export default function SubscribersPage() {
           </div>
         </div>
 
+        {upgradeCandidates.length > 0 && (
+          <div className="bg-violet-50 rounded-xl border border-violet-200 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="font-semibold text-violet-900 flex items-center gap-2 mb-1">
+                  <Package className="w-4 h-4" /> Annual Billing Upgrade Available
+                </h3>
+                <p className="text-xs text-violet-700">
+                  {upgradeCandidates.length} Enterprise/Professional lender{upgradeCandidates.length !== 1 ? 's' : ''} on monthly billing.
+                  Converting to annual saves them 20% and locks in <strong>N${potentialAnnualRevenue.toLocaleString()}/yr</strong> revenue
+                  vs N${currentAnnualisedRevenue.toLocaleString()}/yr at current rates.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {upgradeCandidates.map(s => (
+                    <span key={s.id} className="px-2 py-0.5 bg-violet-100 text-violet-800 text-[10px] font-medium rounded-full">{s.company_name}</span>
+                  ))}
+                </div>
+              </div>
+              <Link href="/dashboard/packages?tab=assign"
+                className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap">
+                Assign Annual <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        )}
+
         {expiringSoon.length > 0 && (
           <div className="bg-amber-50 rounded-xl border border-amber-200 p-5">
             <h3 className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
@@ -268,7 +309,7 @@ export default function SubscribersPage() {
                 ) : filtered.map(s => (
                   <tr key={s.id} className="hover:bg-neutral-50 transition-colors">
                     <td className="px-5 py-3">
-                      <p className="text-sm font-medium text-neutral-900">{s.legal_name}</p>
+                      <p className="text-sm font-medium text-neutral-900">{s.company_name || s.legal_name}</p>
                       <p className="text-xs text-neutral-400">{s.registration_number}</p>
                     </td>
                     <td className="px-5 py-3">

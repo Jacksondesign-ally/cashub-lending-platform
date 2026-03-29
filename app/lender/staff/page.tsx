@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { UserCog, Plus, Search, RefreshCw, Mail, Phone, Shield, Trash2, CheckCircle } from 'lucide-react'
+import { UserCog, Plus, Search, RefreshCw, Mail, Phone, Shield, Trash2, CheckCircle, Copy, Eye, EyeOff, Key } from 'lucide-react'
 
 interface StaffMember {
   id: string
@@ -24,6 +24,8 @@ export default function LenderStaffPage() {
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
   const [saveError, setSaveError] = useState('')
+  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => { fetchStaff() }, [])
 
@@ -47,20 +49,24 @@ export default function LenderStaffPage() {
     if (!form.email || !form.full_name) { setSaveError('Name and email are required'); return }
     setSaving(true); setSaveError(''); setSaveMsg('')
     try {
-      const { data: existing } = await supabase.from('users').select('id').eq('email', form.email).maybeSingle()
-      if (existing) { setSaveError('A user with this email already exists'); setSaving(false); return }
-      const { error } = await supabase.from('users').insert({
-        full_name: form.full_name,
-        email: form.email,
-        role: form.role,
-        phone: form.phone || null,
-        status: 'invited',
-        lender_id: localStorage.getItem('lenderId') || null,
+      const res = await fetch('/api/create-staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: form.full_name,
+          email: form.email,
+          role: form.role,
+          phone: form.phone || null,
+          lender_id: localStorage.getItem('lenderId') || null,
+        }),
       })
-      if (error) { setSaveError(error.message); setSaving(false); return }
-      setSaveMsg('Staff member invited successfully!')
-      setTimeout(() => { setSaveMsg(''); setShowModal(false); setForm({ full_name: '', email: '', role: 'loan_officer', phone: '' }); fetchStaff() }, 1500)
-    } catch (err: any) { setSaveError(err.message || 'Error inviting staff') }
+      const result = await res.json()
+      if (!res.ok || result.error) { setSaveError(result.error || 'Error creating staff'); setSaving(false); return }
+      setCredentials(result.credentials)
+      setSaveMsg('Staff member created with login credentials!')
+      setForm({ full_name: '', email: '', role: 'loan_officer', phone: '' })
+      fetchStaff()
+    } catch (err: any) { setSaveError(err.message || 'Error creating staff') }
     setSaving(false)
   }
 
@@ -75,6 +81,8 @@ export default function LenderStaffPage() {
     return !q || (s.full_name || '').toLowerCase().includes(q) || s.email.toLowerCase().includes(q)
   })
 
+  const copyToClipboard = (text: string) => { navigator.clipboard.writeText(text).catch(() => {}) }
+
   const ROLE_LABELS: Record<string, string> = {
     loan_officer: 'Loan Officer',
     lender_admin: 'Lender Admin',
@@ -84,6 +92,47 @@ export default function LenderStaffPage() {
 
   return (
     <div className="space-y-6">
+      {/* Credentials Modal */}
+      {credentials && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                <Key className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-neutral-900">Login Credentials Created</h3>
+                <p className="text-xs text-neutral-500">Share these credentials with the staff member</p>
+              </div>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <p className="text-xs text-amber-800 font-medium">⚠️ Save these credentials now — the password will not be shown again.</p>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-neutral-500 mb-1">Email</label>
+                <div className="flex items-center gap-2 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2">
+                  <span className="flex-1 text-sm font-mono text-neutral-900">{credentials.email}</span>
+                  <button onClick={() => copyToClipboard(credentials.email)} className="text-neutral-400 hover:text-cashub-600"><Copy className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutral-500 mb-1">Temporary Password</label>
+                <div className="flex items-center gap-2 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2">
+                  <span className="flex-1 text-sm font-mono text-neutral-900">{showPassword ? credentials.password : '••••••••••'}</span>
+                  <button onClick={() => setShowPassword(p => !p)} className="text-neutral-400 hover:text-neutral-600">{showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}</button>
+                  <button onClick={() => copyToClipboard(credentials.password)} className="text-neutral-400 hover:text-cashub-600"><Copy className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-neutral-500">The staff member can log in at <strong>/login</strong> and should change their password after first login.</p>
+            <button onClick={() => { setCredentials(null); setShowPassword(false); setShowModal(false) }} className="w-full py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-xl text-sm font-semibold">
+              Done — I've Saved the Credentials
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-neutral-900">Loan Staff</h2>

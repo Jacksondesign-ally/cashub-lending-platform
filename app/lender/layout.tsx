@@ -26,6 +26,7 @@ const lenderMenu = [
   { id: 'registry',     name: 'Shared Registry Search', href: '/lender/registry',           icon: BookOpen,        color: 'text-purple-600',  bg: 'bg-purple-50' },
   { id: 'marketplace',  name: 'Marketplace',             href: '/lender/marketplace',        icon: Store,           color: 'text-cyan-600',    bg: 'bg-cyan-50' },
   { id: 'reports',      name: 'Reports',                 href: '/lender/reports',            icon: BarChart3,       color: 'text-pink-600',    bg: 'bg-pink-50' },
+  { id: 'agreements',   name: 'Loan Agreements',         href: '/lender/agreements',         icon: FileText,        color: 'text-emerald-600', bg: 'bg-emerald-50' },
   { id: 'compliance',   name: 'Compliance Exports',      href: '/lender/compliance',         icon: Shield,          color: 'text-teal-600',    bg: 'bg-teal-50' },
   { id: 'billing',      name: 'Billing & Subscription',  href: '/lender/billing',            icon: CreditCard,      color: 'text-yellow-600',  bg: 'bg-yellow-50' },
   { id: 'invite',         name: 'Invite Borrower',     href: '/lender/invite',         icon: UserPlus, color: 'text-blue-600',   bg: 'bg-blue-50' },
@@ -41,6 +42,8 @@ export default function LenderLayout({ children }: { children: React.ReactNode }
   const [mounted, setMounted] = useState(false)
   const [userName, setUserName] = useState('Lender')
   const [companyName, setCompanyName] = useState('')
+  const [blacklistAlert, setBlacklistAlert] = useState<{ count: number; names: string[] } | null>(null)
+  const [showBlacklistBanner, setShowBlacklistBanner] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -54,6 +57,25 @@ export default function LenderLayout({ children }: { children: React.ReactNode }
     }
     setUserName(name)
     setCompanyName(localStorage.getItem('lenderCompany') || 'My Company')
+    // Check for newly approved blacklist entries
+    const lastBlacklistCheck = localStorage.getItem('lastBlacklistCheck') || new Date(0).toISOString()
+    supabase
+      .from('blacklist')
+      .select('id, full_name, borrower:borrower_id(first_name, last_name)')
+      .eq('status', 'approved')
+      .gt('updated_at', lastBlacklistCheck)
+      .limit(10)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const names = data.map((e: any) => {
+            const b = e.borrower
+            return b ? `${b.first_name} ${b.last_name}` : e.full_name || 'Unknown'
+          }).filter(Boolean)
+          setBlacklistAlert({ count: data.length, names })
+          setShowBlacklistBanner(true)
+          localStorage.setItem('lastBlacklistCheck', new Date().toISOString())
+        }
+      })
     // Always use the real auth session email to resolve lenderId reliably
     supabase.auth.getSession().then(({ data: { session } }) => {
       const email = session?.user?.email || (name.includes('@') ? name : null)
@@ -168,7 +190,22 @@ export default function LenderLayout({ children }: { children: React.ReactNode }
           </div>
         </header>
 
-        <main className="flex-1 p-6">
+        {/* Blacklist Notification Banner */}
+        {showBlacklistBanner && blacklistAlert && (
+          <div className="bg-red-600 text-white px-6 py-3 flex items-center gap-3">
+            <Ban className="w-4 h-4 flex-shrink-0" />
+            <p className="text-sm flex-1">
+              <strong>{blacklistAlert.count} new blacklist {blacklistAlert.count === 1 ? 'entry has' : 'entries have'} been approved</strong> since your last login.
+              {blacklistAlert.names.length > 0 && ` Includes: ${blacklistAlert.names.slice(0, 3).join(', ')}${blacklistAlert.names.length > 3 ? ` and ${blacklistAlert.names.length - 3} more` : ''}.`}
+              {' '}<a href="/lender/blacklist" className="underline font-semibold hover:no-underline">View Blacklist →</a>
+            </p>
+            <button onClick={() => setShowBlacklistBanner(false)} className="p-1 hover:bg-red-700 rounded ml-2">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+      <main className="flex-1 p-6">
           {children}
         </main>
       </div>

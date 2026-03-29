@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { AlertTriangle, Plus, Search, RefreshCw, CheckCircle } from 'lucide-react'
+import { AlertTriangle, Plus, Search, RefreshCw, CheckCircle, Trash2 } from 'lucide-react'
 
 interface ScamAlert {
   id: string
@@ -20,22 +20,34 @@ export default function LenderScamAlertsPage() {
   const [alerts, setAlerts] = useState<ScamAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [myEmail, setMyEmail] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState({ title: '', description: '', suspect_name: '', suspect_id: '', alert_type: 'fraud' })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [deleting, setDeleting] = useState<string | null>(null)
 
-  useEffect(() => { fetchAlerts() }, [])
+  useEffect(() => {
+    const email = localStorage.getItem('userEmail') || localStorage.getItem('userName') || ''
+    setMyEmail(email)
+    fetchAlerts()
+  }, [])
+
+  const deleteAlert = async (id: string) => {
+    if (!confirm('Delete this scam alert? This action cannot be undone.')) return
+    setDeleting(id)
+    await supabase.from('scam_alerts').delete().eq('id', id)
+    setAlerts(prev => prev.filter(a => a.id !== id))
+    setDeleting(null)
+  }
 
   const fetchAlerts = async () => {
     setLoading(true)
     try {
-      const lenderEmail = localStorage.getItem('userEmail') || localStorage.getItem('userName') || ''
       const { data, error } = await supabase
         .from('scam_alerts')
         .select('*')
-        .eq('submitted_by', lenderEmail)
         .order('created_at', { ascending: false })
       setAlerts(data || [])
     } catch (err) { console.error('[CasHuB Error]', err); setAlerts([]) }
@@ -88,7 +100,7 @@ export default function LenderScamAlertsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-neutral-900">Scam Alert Submissions</h2>
-          <p className="text-neutral-500 text-sm">{alerts.length} alerts on record</p>
+          <p className="text-neutral-500 text-sm">{alerts.length} alerts from all lenders</p>
         </div>
         <button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-semibold">
           <Plus className="w-4 h-4" /> Submit Scam Alert
@@ -121,24 +133,39 @@ export default function LenderScamAlertsPage() {
           {filtered.map(alert => {
             const statusColor = STATUS_COLORS[alert.status || 'pending'] || 'bg-gray-100 text-gray-600'
             const typeColor = TYPE_COLORS[alert.alert_type || 'other'] || TYPE_COLORS.other
+            const isOwn = alert.submitted_by === myEmail
             return (
-              <div key={alert.id} className={`bg-white rounded-xl border p-4 ${typeColor}`}>
+              <div key={alert.id} className={`bg-white rounded-xl border-2 p-4 ${isOwn ? 'border-rose-300' : 'border-neutral-200'}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                    <div>
+                    <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0 text-rose-500" />
+                    <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-sm font-bold text-neutral-900">{alert.title}</h3>
-                        <span className="text-[10px] font-semibold uppercase">{(alert.alert_type || 'other').replace('_', ' ')}</span>
+                        <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border ${typeColor}`}>{(alert.alert_type || 'other').replace('_', ' ')}</span>
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusColor}`}>{alert.status || 'pending'}</span>
+                        {isOwn && <span className="text-[10px] font-bold px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full">Your Alert</span>}
                       </div>
                       <p className="text-xs text-neutral-600 mt-1">{alert.description}</p>
                       {(alert.suspect_name || alert.suspect_id) && (
-                        <p className="text-xs text-neutral-500 mt-1">Suspect: {alert.suspect_name || ''} {alert.suspect_id ? `(ID: ${alert.suspect_id})` : ''}</p>
+                        <p className="text-xs text-neutral-500 mt-1">Suspect: <strong>{alert.suspect_name || ''}</strong> {alert.suspect_id ? `(ID: ${alert.suspect_id})` : ''}</p>
                       )}
+                      <p className="text-[10px] text-neutral-400 mt-1.5">Posted by: {alert.submitted_by || 'Unknown'}</p>
                     </div>
                   </div>
-                  <span className="text-[10px] text-neutral-400 whitespace-nowrap ml-2">{new Date(alert.created_at).toLocaleDateString()}</span>
+                  <div className="flex flex-col items-end gap-1 ml-2">
+                    <span className="text-[10px] text-neutral-400 whitespace-nowrap">{new Date(alert.created_at).toLocaleDateString()}</span>
+                    {isOwn && (
+                      <button
+                        onClick={() => deleteAlert(alert.id)}
+                        disabled={deleting === alert.id}
+                        className="p-1 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete your alert"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )

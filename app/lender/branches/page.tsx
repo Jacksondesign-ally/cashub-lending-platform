@@ -29,8 +29,30 @@ export default function BranchesPage() {
   const isEnterprise = plan === 'enterprise'
 
   useEffect(() => {
-    const p = localStorage.getItem('lenderPlan') || 'professional'
-    setPlan(p)
+    const lenderId = localStorage.getItem('lenderId')
+    const localPlan = localStorage.getItem('lenderPlan') || ''
+    if (localPlan) {
+      setPlan(localPlan)
+    } else if (lenderId) {
+      // Read from DB if localStorage not set
+      supabase
+        .from('lender_subscriptions')
+        .select('package_id, plan_type, status')
+        .eq('lender_id', lenderId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            const p = data[0].plan_type || data[0].package_id || 'professional'
+            setPlan(p)
+            localStorage.setItem('lenderPlan', p)
+          } else {
+            setPlan('professional')
+          }
+        })
+    } else {
+      setPlan('professional')
+    }
     fetchBranches()
   }, [])
 

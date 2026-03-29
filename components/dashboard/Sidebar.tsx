@@ -33,7 +33,8 @@ import {
   Ban,
   ClipboardList,
   Package,
-  Activity
+  Activity,
+  Palette
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -61,7 +62,7 @@ const superAdminMenu = [
   { id: 'registry',    name: 'Shared Registry',     href: '/dashboard/registry',       icon: BookOpen,        color: 'text-teal-600',   bgColor: 'bg-teal-50' },
   { id: 'risk-engine', name: 'Risk Engine',         href: '/dashboard/risk-engine',    icon: TrendingUp,      color: 'text-amber-600',  bgColor: 'bg-amber-50' },
   { id: 'audit-logs',  name: 'Audit Logs',          href: '/dashboard/audit-logs',     icon: Database,        color: 'text-slate-600',  bgColor: 'bg-slate-50' },
-  { id: 'audit-reports',name: 'Audit Reports',       href: '/dashboard/audit-reports',  icon: ClipboardList,   color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
+  { id: 'branding',    name: 'Branding',            href: '/dashboard/branding',       icon: Palette,         color: 'text-pink-600',   bgColor: 'bg-pink-50' },
   { id: 'settings',    name: 'Settings',            href: '/dashboard/settings',       icon: Settings,        color: 'text-gray-600',   bgColor: 'bg-gray-50' },
   { id: 'notifications',name: 'Notifications',       href: '/dashboard/notifications',  icon: Bell,            color: 'text-emerald-600',bgColor: 'bg-emerald-50' },
 ]
