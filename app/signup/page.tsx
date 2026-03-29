@@ -47,9 +47,9 @@ function SignupContent() {
   const registrationRole = ['lender', 'super_admin'].includes(roleParam) ? roleParam : 'borrower'
   const isLender = registrationRole === 'lender'
 
-  // Step management (lender has 3 steps, others have 1)
+  // Step management (lender has 4 steps, borrower has 5)
   const [step, setStep] = useState(1)
-  const totalSteps = isLender ? 3 : registrationRole === 'borrower' ? 5 : 1
+  const totalSteps = isLender ? 4 : registrationRole === 'borrower' ? 5 : 1
 
   // Step 1 - Account info
   const [fullName, setFullName] = useState('')
@@ -69,6 +69,13 @@ function SignupContent() {
   // Step 3 - Package (lender only)
   const [selectedPackage, setSelectedPackage] = useState('professional')
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
+
+  // Step 4 - Agreement info (lender only)
+  const [signatoryName, setSignatoryName] = useState('')
+  const [signatoryId, setSignatoryId] = useState('')
+  const [signatoryTitle, setSignatoryTitle] = useState('')
+  const [lenderPostalAddress, setLenderPostalAddress] = useState('')
+  const [latePaymentPercentage, setLatePaymentPercentage] = useState('5')
 
   // Borrower agreement fields (steps 2-5)
   const [idNumber, setIdNumber] = useState('')
@@ -199,6 +206,11 @@ function SignupContent() {
           email: userEmail,
           phone: phone || '',
           registration_number: registrationNumber || '',
+          postal_address: lenderPostalAddress || null,
+          authorized_signatory_name: signatoryName || null,
+          authorized_signatory_id: signatoryId || null,
+          authorized_signatory_title: signatoryTitle || null,
+          late_payment_percentage: latePaymentPercentage ? parseFloat(latePaymentPercentage) : 5,
           is_active: false,
         }).select('id, company_name').single()
         
@@ -258,7 +270,7 @@ function SignupContent() {
     }
   }
 
-  const stepLabels = isLender ? ['Account', 'Company', 'Package'] : ['Account', 'Personal', 'Employment', 'Banking', 'References']
+  const stepLabels = isLender ? ['Account', 'Company', 'Package', 'Agreement'] : ['Account', 'Personal', 'Employment', 'Banking', 'References']
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cashub-600 via-cashub-700 to-emerald-800 flex items-center justify-center py-10 px-4 relative overflow-hidden">
@@ -463,7 +475,7 @@ function SignupContent() {
 
           {/* ─── STEP 3: Package Selection (lender only) ─── */}
           {step === 3 && isLender && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
               <p className="text-xs text-neutral-500 mb-2">Choose a subscription plan to get started</p>
 
               {/* Billing Period Toggle */}
@@ -504,12 +516,42 @@ function SignupContent() {
                   </button>
                 )})}
               </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => { setError(''); setStep(2) }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-neutral-300 text-neutral-700 rounded-xl text-sm font-semibold hover:bg-neutral-50">
+                  <ChevronLeft className="w-4 h-4" /> Back
+                </button>
+                <button type="button" onClick={() => { setError(''); setStep(4) }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-xl text-sm font-semibold">
+                  Continue <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ─── STEP 4: Agreement Info (lender only) ─── */}
+          {step === 4 && isLender && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <p className="text-xs text-neutral-500 font-medium">Agreement &amp; Signatory Details — auto-fills your loan agreements</p>
+              <Input icon={User} label="Authorised Signatory Name" type="text" value={signatoryName} onChange={e => setSignatoryName(e.target.value)} placeholder="Full name of authorised signatory" />
+              <div className="grid grid-cols-2 gap-3">
+                <Input icon={Shield} label="Signatory ID No" type="text" value={signatoryId} onChange={e => setSignatoryId(e.target.value)} placeholder="ID / Passport number" />
+                <Input icon={FileText} label="Title / Designation" type="text" value={signatoryTitle} onChange={e => setSignatoryTitle(e.target.value)} placeholder="e.g. Director, CEO" />
+              </div>
+              <Input icon={MapPin} label="Postal Address" type="text" value={lenderPostalAddress} onChange={e => setLenderPostalAddress(e.target.value)} placeholder="P.O. Box 1234, Windhoek" />
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Late Payment Penalty (%)</label>
+                <input type="number" min="0" max="100" step="0.1" value={latePaymentPercentage}
+                  onChange={e => setLatePaymentPercentage(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-cashub-500" />
+                <p className="text-[11px] text-neutral-400 mt-1">Standard is 5% — this will appear on all your loan agreements</p>
+              </div>
               <div className="flex items-center gap-2">
                 <input id="terms-lender" type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} className="h-4 w-4 text-cashub-600 border-neutral-300 rounded" />
                 <label htmlFor="terms-lender" className="text-xs text-neutral-600">I accept the CasHuB terms, privacy policy and NAMFISA regulations</label>
               </div>
               <div className="flex gap-2">
-                <button type="button" onClick={() => { setError(''); setStep(2) }}
+                <button type="button" onClick={() => { setError(''); setStep(3) }}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-neutral-300 text-neutral-700 rounded-xl text-sm font-semibold hover:bg-neutral-50">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>

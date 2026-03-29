@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { 
   Settings, 
   Users, 
@@ -54,6 +54,7 @@ export default function SettingsPage() {
     { image: '/slides/slide2.jpg',     gradient: 'from-blue-800 via-blue-900 to-indigo-900',     title: 'Emergency Cash When You Need It', subtitle: 'Quick loans for groceries, school fees, medical bills, or other expenses.' },
   ])
   const [slideSaving, setSlideSaving] = useState(false)
+  const [slideUploading, setSlideUploading] = useState<number | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [saving, setSaving] = useState(false)
   const [currentLocale, setCurrentLocale] = useState<Locale>('en')
@@ -991,11 +992,41 @@ export default function SettingsPage() {
                       )}
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-neutral-700 mb-1">Image Path</label>
-                      <input type="text" value={slide.image}
-                        onChange={e => setLoginSlides(loginSlides.map((s, i) => i === idx ? { ...s, image: e.target.value } : s))}
-                        placeholder="/slides/slide1.jpg"
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-cashub-500" />
+                      <label className="block text-xs font-medium text-neutral-700 mb-1">Slide Image</label>
+                      <div className="flex gap-2 items-center">
+                        <input type="text" value={slide.image}
+                          onChange={e => setLoginSlides(loginSlides.map((s, i) => i === idx ? { ...s, image: e.target.value } : s))}
+                          placeholder="/slides/slide1.jpg or upload below"
+                          className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-cashub-500" />
+                        <button type="button" disabled={slideUploading === idx}
+                          onClick={() => {
+                            const input = document.createElement('input')
+                            input.type = 'file'
+                            input.accept = 'image/*'
+                            input.onchange = async (e) => {
+                              const file = (e.target as HTMLInputElement).files?.[0]
+                              if (!file) return
+                              setSlideUploading(idx)
+                              try {
+                                const reader = new FileReader()
+                                reader.onload = (ev) => {
+                                  const base64 = ev.target?.result as string
+                                  setLoginSlides(prev => prev.map((s, i) => i === idx ? { ...s, image: base64 } : s))
+                                  setSlideUploading(null)
+                                }
+                                reader.readAsDataURL(file)
+                              } catch { setSlideUploading(null) }
+                            }
+                            input.click()
+                          }}
+                          className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-lg text-xs font-medium text-neutral-700 disabled:opacity-50">
+                          <Upload className="w-3.5 h-3.5" />
+                          {slideUploading === idx ? 'Loading...' : 'Upload'}
+                        </button>
+                      </div>
+                      {slide.image?.startsWith('data:') && (
+                        <img src={slide.image} alt="preview" className="mt-2 h-16 w-full object-cover rounded-lg" />
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-neutral-700 mb-1">Title</label>
