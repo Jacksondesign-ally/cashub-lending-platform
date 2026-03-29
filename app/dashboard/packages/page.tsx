@@ -60,14 +60,38 @@ export default function PackagesPage() {
   const [activeTab, setActiveTab] = useState<'packages' | 'assign'>('packages')
 
   useEffect(() => {
-    const saved = localStorage.getItem('adminPackages')
-    if (saved) { try { setPackages(JSON.parse(saved)) } catch {} }
+    // Load from DB first (source of truth), fall back to localStorage
+    supabase.from('system_settings').select('value').eq('key', 'admin_packages').maybeSingle().then(({ data }) => {
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setPackages(parsed)
+            localStorage.setItem('adminPackages', data.value)
+            return
+          }
+        } catch {}
+      }
+      // Fall back to localStorage
+      const saved = localStorage.getItem('adminPackages')
+      if (saved) { try { setPackages(JSON.parse(saved)) } catch {} }
+    })
     fetchLenders()
   }, [])
 
-  const savePackages = (updated: PackageDef[]) => {
+  const savePackages = async (updated: PackageDef[]) => {
     setPackages(updated)
-    localStorage.setItem('adminPackages', JSON.stringify(updated))
+    const json = JSON.stringify(updated)
+    localStorage.setItem('adminPackages', json)
+    // Persist to DB so all lender billing pages reflect the change
+    try {
+      const { data: existing } = await supabase.from('system_settings').select('id').eq('key', 'admin_packages').maybeSingle()
+      if (existing?.id) {
+        await supabase.from('system_settings').update({ value: json }).eq('key', 'admin_packages')
+      } else {
+        await supabase.from('system_settings').insert({ key: 'admin_packages', value: json })
+      }
+    } catch {}
   }
 
   const fetchLenders = async () => {

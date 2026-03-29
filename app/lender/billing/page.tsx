@@ -4,15 +4,17 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CreditCard, CheckCircle, Clock, AlertCircle, Download, RefreshCw, Zap, Building, Star } from 'lucide-react'
 
-const PLANS = [
-  { id: 'starter', name: 'Starter', price: 250, currency: 'N$', period: 'month', maxLoans: 50, maxStaff: 2, features: ['Up to 50 active loans', '2 loan officers', 'Basic reports', 'Shared registry access'] },
-  { id: 'professional', name: 'Professional', price: 350, currency: 'N$', period: 'month', maxLoans: 250, maxStaff: 10, features: ['Up to 250 active loans', '10 loan officers', 'Advanced reports', 'Shared registry access', 'NAMFISA compliance exports', 'Marketplace access'] },
-  { id: 'enterprise', name: 'Enterprise', price: 500, currency: 'N$', period: 'month', maxLoans: 0, maxStaff: 0, features: ['Unlimited loans', 'Unlimited staff', 'Full analytics suite', 'Priority support', 'Custom integrations', 'Dedicated account manager', 'Multi-branch management'] },
+const DEFAULT_PLANS = [
+  { id: 'starter',      name: 'Starter',      price: 250, currency: 'N$', features: ['Up to 50 active loans', '2 loan officers', 'Basic reports', 'Shared registry access'] },
+  { id: 'professional', name: 'Professional', price: 350, currency: 'N$', features: ['Up to 250 active loans', '10 loan officers', 'Advanced reports', 'NAMFISA compliance exports', 'Marketplace access'] },
+  { id: 'enterprise',   name: 'Enterprise',   price: 500, currency: 'N$', features: ['Unlimited loans', 'Unlimited staff', 'Full analytics suite', 'Priority support', 'Custom integrations', 'Multi-branch management'] },
 ]
 const ANNUAL_DISCOUNT = 0.20
 
 export default function LenderBillingPage() {
+  const [plans, setPlans] = useState(DEFAULT_PLANS)
   const [currentPlan, setCurrentPlan] = useState('professional')
+  const [currentAmount, setCurrentAmount] = useState<number | null>(null)
   const [status, setStatus] = useState<'active' | 'trial' | 'suspended'>('active')
   const [nextBilling, setNextBilling] = useState('')
   const [invoices, setInvoices] = useState<any[]>([])
@@ -25,16 +27,29 @@ export default function LenderBillingPage() {
     const today = new Date()
     const next = new Date(today.getFullYear(), today.getMonth() + 1, 1)
     setNextBilling(next.toLocaleDateString('en-NA', { day: '2-digit', month: 'short', year: 'numeric' }))
+
+    // Load admin-defined packages from DB (system_settings), fall back to defaults
+    supabase.from('system_settings').select('value').eq('key', 'admin_packages').maybeSingle().then(({ data }) => {
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setPlans(parsed.map((p: any) => ({ id: p.id, name: p.name, price: p.price, currency: 'N$', features: p.features || [] })))
+          }
+        } catch {}
+      }
+    })
+
     if (lenderId) {
       supabase.from('lender_subscriptions').select('*').eq('lender_id', lenderId).order('created_at', { ascending: false }).then(({ data }) => {
         if (data && data.length > 0) {
           const plan = data[0].plan_type || data[0].package_id || 'professional'
           setCurrentPlan(plan)
-          // Sync plan to localStorage so other pages (branches, staff limits, etc.) always have correct plan
+          setCurrentAmount(data[0].amount || null)
           localStorage.setItem('lenderPlan', plan)
           setStatus((data[0].status || 'active').toLowerCase() as 'active' | 'trial' | 'suspended')
           setBillingCycle(data[0].billing_cycle || 'monthly')
-          setInvoices(data.map((d: any) => ({ id: d.id, date: d.created_at?.split('T')[0], plan: d.plan_type || d.package_id || 'professional', amount: d.amount || 350, status: d.payment_status || 'paid' })))
+          setInvoices(data.map((d: any) => ({ id: d.id, date: d.created_at?.split('T')[0], plan: d.package_name || d.plan_type || d.package_id || 'professional', amount: d.amount || 0, status: d.payment_status || 'paid' })))
         }
       })
     }
@@ -85,14 +100,14 @@ export default function LenderBillingPage() {
         </div>
         {billingCycle === 'annual' && <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-3 font-medium">🎉 Annual billing saves you 20% — billed as one upfront payment.</p>}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {PLANS.map(plan => (
+          {plans.map(plan => (
             <div key={plan.id} className={`bg-white rounded-2xl border-2 p-5 flex flex-col ${plan.id === currentPlan ? 'border-cashub-500 shadow-lg' : 'border-neutral-200'}`}>
               {plan.id === currentPlan && <div className="self-start mb-2 px-2 py-0.5 bg-cashub-100 text-cashub-700 text-[10px] font-bold rounded-full uppercase tracking-wide">Current</div>}
               {plan.id === 'professional' && plan.id !== currentPlan && <div className="self-start mb-2 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full uppercase tracking-wide flex items-center gap-1"><Star className="w-2.5 h-2.5" />Popular</div>}
               <h3 className="text-base font-bold text-neutral-900">{plan.name}</h3>
               <div className="my-3">
                 <span className="text-3xl font-black text-neutral-900">
-                  {plan.currency} {billingCycle === 'annual' ? Math.round(plan.price * (1 - ANNUAL_DISCOUNT)).toLocaleString() : plan.price.toLocaleString()}
+                  {(plan as any).currency || 'N$'} {billingCycle === 'annual' ? Math.round(plan.price * (1 - ANNUAL_DISCOUNT)).toLocaleString() : plan.price.toLocaleString()}
                 </span>
                 <span className="text-xs text-neutral-500">/{billingCycle === 'annual' ? 'mo · billed annually' : 'month'}</span>
                 {billingCycle === 'annual' && (
