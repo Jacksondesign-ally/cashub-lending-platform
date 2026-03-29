@@ -101,6 +101,8 @@ export default function LenderOnboardingPage() {
   const [actionReason, setActionReason] = useState('')
   const [actionSubmitting, setActionSubmitting] = useState(false)
   const [allowed, setAllowed] = useState<boolean | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState('')
 
   useEffect(() => {
     const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null
@@ -111,6 +113,31 @@ export default function LenderOnboardingPage() {
       setAllowed(false)
     }
   }, [])
+
+  const syncLenderNames = async () => {
+    setSyncing(true)
+    setSyncMsg('')
+    try {
+      const { data: onboarding } = await supabase
+        .from('lender_onboarding')
+        .select('email, company_name, legal_name')
+        .eq('status', 'approved')
+      if (!onboarding?.length) { setSyncMsg('No approved lenders to sync.'); setSyncing(false); return }
+      let updated = 0
+      for (const o of onboarding) {
+        const { error } = await supabase
+          .from('lenders')
+          .update({ company_name: o.company_name, legal_name: o.legal_name || o.company_name })
+          .eq('email', o.email)
+        if (!error) updated++
+      }
+      setSyncMsg(`✓ Synced ${updated} of ${onboarding.length} lender names successfully.`)
+      setTimeout(() => setSyncMsg(''), 5000)
+    } catch (err: any) {
+      setSyncMsg(`Error: ${err.message}`)
+    }
+    setSyncing(false)
+  }
 
   const fetchRequests = async () => {
     setLoading(true)
@@ -273,7 +300,13 @@ export default function LenderOnboardingPage() {
           <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-medium">
             {stats.underReview} In Review
           </span>
+          <button onClick={syncLenderNames} disabled={syncing}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50">
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync Lender Names'}
+          </button>
         </div>
+        {syncMsg && <p className={`text-xs mt-1 ${syncMsg.startsWith('Error') ? 'text-red-600' : 'text-emerald-700'} font-medium`}>{syncMsg}</p>}
       </div>
 
       {/* Workflow Steps */}
