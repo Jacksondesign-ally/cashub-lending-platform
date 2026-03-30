@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Mail, Lock, User, Phone, AlertCircle, CheckCircle, Building, Shield, MapPin, FileText, CreditCard, ChevronRight, ChevronLeft, Star, Zap, Crown } from 'lucide-react'
+import { Mail, Lock, User, Phone, AlertCircle, CheckCircle, Building, Shield, MapPin, FileText, CreditCard, ChevronRight, ChevronLeft, Star, Zap, Crown, Camera, Upload, X } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
@@ -76,6 +76,12 @@ function SignupContent() {
   const [signatoryTitle, setSignatoryTitle] = useState('')
   const [lenderPostalAddress, setLenderPostalAddress] = useState('')
   const [latePaymentPercentage, setLatePaymentPercentage] = useState('5')
+  const sigCanvasRef = useRef<HTMLCanvasElement>(null)
+  const [sigIsDrawing, setSigIsDrawing] = useState(false)
+  const [sigDataUrl, setSigDataUrl] = useState('')
+
+  // Borrower photo
+  const [borrowerPhoto, setBorrowerPhoto] = useState('')
 
   // Borrower agreement fields (steps 2-5)
   const [idNumber, setIdNumber] = useState('')
@@ -110,6 +116,52 @@ function SignupContent() {
     if (!password || password.length < 6) return 'Password must be at least 6 characters'
     if (password !== confirmPassword) return 'Passwords do not match'
     return ''
+  }
+
+  const startSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = sigCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    setSigIsDrawing(true)
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY
+    ctx.beginPath()
+    ctx.moveTo((clientX - rect.left) * scaleX, (clientY - rect.top) * scaleY)
+  }
+  const drawSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!sigIsDrawing) return
+    const canvas = sigCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY
+    ctx.lineWidth = 2
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.strokeStyle = '#0f172a'
+    ctx.lineTo((clientX - rect.left) * scaleX, (clientY - rect.top) * scaleY)
+    ctx.stroke()
+  }
+  const stopSig = () => {
+    if (!sigIsDrawing) return
+    setSigIsDrawing(false)
+    const canvas = sigCanvasRef.current
+    if (canvas) setSigDataUrl(canvas.toDataURL('image/png'))
+  }
+  const clearSig = () => {
+    const canvas = sigCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    ctx?.clearRect(0, 0, canvas.width, canvas.height)
+    setSigDataUrl('')
   }
 
   const handleNext = () => {
@@ -211,6 +263,7 @@ function SignupContent() {
           authorized_signatory_id: signatoryId || null,
           authorized_signatory_title: signatoryTitle || null,
           late_payment_percentage: latePaymentPercentage ? parseFloat(latePaymentPercentage) : 5,
+          signature_url: sigDataUrl || null,
           is_active: false,
         }).select('id, company_name').single()
         
@@ -230,6 +283,7 @@ function SignupContent() {
           email: userEmail,
           phone: phone || '',
           id_number: idNumber || null,
+          photo_url: borrowerPhoto || null,
           postal_address: postalAddress || null,
           address: residentialAddress || null,
           marital_status: maritalStatus || null,
@@ -333,6 +387,42 @@ function SignupContent() {
           {step === 2 && !isLender && registrationRole === 'borrower' && (
             <div className="space-y-4">
               <p className="text-xs text-neutral-500 font-medium">Personal Information — used to auto-fill your loan agreement</p>
+
+              {/* Photo capture */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Profile Photo <span className="text-xs font-normal text-neutral-400">(optional)</span></label>
+                <div className="flex items-center gap-4">
+                  {borrowerPhoto ? (
+                    <div className="relative">
+                      <img src={borrowerPhoto} alt="Profile" className="w-16 h-16 rounded-full object-cover border-2 border-cashub-500" />
+                      <button type="button" onClick={() => setBorrowerPhoto('')} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center border-2 border-dashed border-neutral-300">
+                      <Camera className="w-6 h-6 text-neutral-400" />
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2">
+                    <button type="button" onClick={() => {
+                      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'
+                      inp.onchange = (ev) => { const f = (ev.target as HTMLInputElement).files?.[0]; if (!f) return; const r = new FileReader(); r.onload = e2 => setBorrowerPhoto(e2.target?.result as string); r.readAsDataURL(f) }
+                      inp.click()
+                    }} className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 rounded-lg text-xs font-medium text-neutral-700">
+                      <Upload className="w-3.5 h-3.5" /> Upload Photo
+                    </button>
+                    <button type="button" onClick={() => {
+                      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.setAttribute('capture', 'user')
+                      inp.onchange = (ev) => { const f = (ev.target as HTMLInputElement).files?.[0]; if (!f) return; const r = new FileReader(); r.onload = e2 => setBorrowerPhoto(e2.target?.result as string); r.readAsDataURL(f) }
+                      inp.click()
+                    }} className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 rounded-lg text-xs font-medium text-neutral-700">
+                      <Camera className="w-3.5 h-3.5" /> Take Photo
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <Input icon={Shield} label="ID / Passport No" required type="text" value={idNumber} onChange={e => setIdNumber(e.target.value)} placeholder="e.g. 00010100123" />
                 <div>
@@ -546,6 +636,42 @@ function SignupContent() {
                   className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-cashub-500" />
                 <p className="text-[11px] text-neutral-400 mt-1">Standard is 5% — this will appear on all your loan agreements</p>
               </div>
+
+              {/* Signature Pad */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Authorised Signature <span className="text-xs font-normal text-neutral-400">(draw in box below)</span>
+                </label>
+                <div className="relative border-2 border-dashed border-neutral-300 rounded-xl bg-neutral-50 overflow-hidden" style={{height: '120px'}}>
+                  <canvas
+                    ref={sigCanvasRef}
+                    width={600}
+                    height={120}
+                    className="w-full h-full touch-none cursor-crosshair"
+                    onMouseDown={startSig}
+                    onMouseMove={drawSig}
+                    onMouseUp={stopSig}
+                    onMouseLeave={stopSig}
+                    onTouchStart={e => { e.preventDefault(); startSig(e) }}
+                    onTouchMove={e => { e.preventDefault(); drawSig(e) }}
+                    onTouchEnd={stopSig}
+                  />
+                  {!sigDataUrl && (
+                    <p className="absolute inset-0 flex items-center justify-center text-xs text-neutral-400 pointer-events-none select-none">
+                      ✍ Sign here
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-[11px] text-neutral-400">This signature will appear on all loan agreements</p>
+                  {sigDataUrl && (
+                    <button type="button" onClick={clearSig} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1">
+                      <X className="w-3 h-3" /> Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
                 <input id="terms-lender" type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} className="h-4 w-4 text-cashub-600 border-neutral-300 rounded" />
                 <label htmlFor="terms-lender" className="text-xs text-neutral-600">I accept the CasHuB terms, privacy policy and NAMFISA regulations</label>

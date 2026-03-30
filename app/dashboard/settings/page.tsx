@@ -1063,8 +1063,18 @@ export default function SettingsPage() {
               <button
                 onClick={async () => {
                   setSlideSaving(true)
-                  localStorage.setItem('loginSlides', JSON.stringify(loginSlides))
-                  setTimeout(() => setSlideSaving(false), 800)
+                  const json = JSON.stringify(loginSlides)
+                  localStorage.setItem('loginSlides', json)
+                  // Persist to DB so login page shows custom images on all devices
+                  try {
+                    const { data: existing } = await supabase.from('system_settings').select('id').eq('key', 'login_slides').maybeSingle()
+                    if (existing?.id) {
+                      await supabase.from('system_settings').update({ value: json }).eq('key', 'login_slides')
+                    } else {
+                      await supabase.from('system_settings').insert({ key: 'login_slides', value: json })
+                    }
+                  } catch {}
+                  setSlideSaving(false)
                 }}
                 disabled={slideSaving}
                 className="inline-flex items-center px-4 py-2 bg-cashub-600 text-white rounded-lg hover:bg-cashub-700 transition-colors disabled:opacity-50">
