@@ -34,7 +34,8 @@ import {
   ClipboardList,
   Package,
   Activity,
-  Palette
+  Palette,
+  HeartPulse
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -64,6 +65,7 @@ const superAdminMenu = [
   { id: 'audit-logs',  name: 'Audit Logs',          href: '/dashboard/audit-logs',     icon: Database,        color: 'text-slate-600',  bgColor: 'bg-slate-50' },
   { id: 'settings',    name: 'Settings',            href: '/dashboard/settings',       icon: Settings,        color: 'text-gray-600',   bgColor: 'bg-gray-50' },
   { id: 'notifications',name: 'Notifications',       href: '/dashboard/notifications',  icon: Bell,            color: 'text-emerald-600',bgColor: 'bg-emerald-50' },
+  { id: 'system-health',name: 'System Health',       href: '/dashboard/system-health',  icon: HeartPulse,      color: 'text-rose-600',   bgColor: 'bg-rose-50' },
 ]
 
 // ─── LOAN OFFICER MENU (Lender staff in dashboard scope) ─────────────────────
