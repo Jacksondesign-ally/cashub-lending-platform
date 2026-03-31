@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Gavel, Search, RefreshCw, CheckCircle, XCircle, Clock, Eye, AlertTriangle, Shield, User, Building, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react'
+import { Gavel, Search, RefreshCw, CheckCircle, XCircle, Clock, Eye, AlertTriangle, Shield, User, Building, ChevronDown, ChevronUp, MessageSquare, Upload, Paperclip, ExternalLink } from 'lucide-react'
 
 type DisputeStatus = 'pending' | 'under_review' | 'resolved' | 'dismissed'
 
@@ -37,6 +37,8 @@ export default function DisputesPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [resolutionNote, setResolutionNote] = useState('')
   const [showResolveModal, setShowResolveModal] = useState<{ id: string; action: 'resolved' | 'dismissed' } | null>(null)
+  const [evidenceUploading, setEvidenceUploading] = useState<string | null>(null)
+  const [evidenceUrls, setEvidenceUrls] = useState<Record<string, string[]>>({})
 
   useEffect(() => { fetchDisputes() }, [])
 
@@ -70,6 +72,24 @@ export default function DisputesPage() {
     setShowResolveModal(null)
     setResolutionNote('')
     setActionLoading(null)
+  }
+
+  const uploadEvidence = async (disputeId: string, file: File) => {
+    setEvidenceUploading(disputeId)
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `${disputeId}/evidence-${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage.from('disputes').upload(path, file, { upsert: true })
+      if (upErr) throw upErr
+      const { data: urlData } = supabase.storage.from('disputes').getPublicUrl(path)
+      const publicUrl = urlData.publicUrl
+      // Save URL to dispute record
+      const existing = evidenceUrls[disputeId] || []
+      const updated = [...existing, publicUrl]
+      setEvidenceUrls(prev => ({ ...prev, [disputeId]: updated }))
+      await supabase.from('borrower_disputes').update({ evidence_url: publicUrl }).eq('id', disputeId)
+    } catch (err: any) { console.error('Evidence upload error:', err.message) }
+    setEvidenceUploading(null)
   }
 
   const markUnderReview = async (id: string) => {
@@ -182,6 +202,27 @@ export default function DisputesPage() {
                   <div className="space-y-2">
                     <div className="text-xs"><span className="text-neutral-500">Reason: </span><span className="text-neutral-800 font-medium">{dispute.reason}</span></div>
                     <div className="text-xs"><span className="text-neutral-500">Evidence: </span><span className="text-neutral-800">{dispute.evidence_description || 'No details provided'}</span></div>
+                  {/* Evidence Files */}
+                  <div className="pt-1">
+                    <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide mb-1.5">Evidence Files</p>
+                    {(evidenceUrls[dispute.id] || []).map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-[10px] text-cashub-600 hover:underline mb-1">
+                        <Paperclip className="w-3 h-3" />
+                        File {i + 1} <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    ))}
+                    <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold cursor-pointer transition-colors ${
+                      evidenceUploading === dispute.id ? 'bg-neutral-100 text-neutral-400' : 'bg-cashub-50 hover:bg-cashub-100 text-cashub-700'
+                    }`}>
+                      {evidenceUploading === dispute.id
+                        ? <><RefreshCw className="w-3 h-3 animate-spin" /> Uploading...</>
+                        : <><Upload className="w-3 h-3" /> Upload Evidence</>}
+                      <input type="file" className="hidden" disabled={evidenceUploading === dispute.id}
+                        accept="image/*,.pdf,.doc,.docx"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadEvidence(dispute.id, f) }} />
+                    </label>
+                  </div>
                     {dispute.resolution_notes && <div className="bg-green-50 border border-green-200 rounded-lg p-2"><p className="text-[10px] font-bold text-green-800 mb-0.5">Resolution Notes:</p><p className="text-[10px] text-green-700">{dispute.resolution_notes}</p></div>}
                   </div>
                 </div>

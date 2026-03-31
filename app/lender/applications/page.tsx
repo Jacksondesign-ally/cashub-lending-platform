@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { FileText, Search, RefreshCw, Plus, CheckCircle, XCircle, Clock, Eye, ChevronDown, ChevronUp, AlertTriangle, ShieldCheck, X } from 'lucide-react'
+import { FileText, Search, RefreshCw, Plus, CheckCircle, XCircle, Clock, Eye, ChevronDown, ChevronUp, AlertTriangle, ShieldCheck, X, Upload, Paperclip, ExternalLink } from 'lucide-react'
 
 type AppStatus = 'pending' | 'approved' | 'rejected' | 'under_review' | 'disbursed' | 'offer_pending'
 
@@ -46,6 +46,9 @@ export default function LenderApplicationsPage() {
   const [borrowerResults, setBorrowerResults] = useState<any[]>([])
   const [borrowerLookupLoading, setBorrowerLookupLoading] = useState(false)
   const [autofillMsg, setAutofillMsg] = useState('')
+  const [docFile, setDocFile] = useState<File | null>(null)
+  const [docUploading, setDocUploading] = useState(false)
+  const [docUrl, setDocUrl] = useState('')
 
   useEffect(() => { fetchApps() }, [])
 
@@ -170,6 +173,19 @@ export default function LenderApplicationsPage() {
     const lenderEmail = localStorage.getItem('userName') || ''
     const lenderId = localStorage.getItem('lenderId')
     try {
+      // Upload doc to loans bucket if selected
+      let uploadedDocUrl = docUrl
+      if (docFile && !uploadedDocUrl) {
+        setDocUploading(true)
+        const ext = docFile.name.split('.').pop()
+        const path = `apps/${lenderId || 'unknown'}-${Date.now()}.${ext}`
+        const { error: upErr } = await supabase.storage.from('loans').upload(path, docFile, { upsert: true })
+        if (!upErr) {
+          const { data: urlData } = supabase.storage.from('loans').getPublicUrl(path)
+          uploadedDocUrl = urlData.publicUrl
+        }
+        setDocUploading(false)
+      }
       // Always create/find borrower record first
       await ensureBorrower(form.borrower_first_name, form.borrower_last_name, form.borrower_email || null, lenderId || null)
       // Create loan application
@@ -183,8 +199,14 @@ export default function LenderApplicationsPage() {
         lender_email: lenderEmail,
         lender_id: lenderId || null,
         status: 'pending',
+        document_url: uploadedDocUrl || null,
       })
-      if (!error) { setShowNewModal(false); setForm({ borrower_first_name: '', borrower_last_name: '', borrower_email: '', loan_amount: '', loan_purpose: '', loan_term: '12' }); fetchApps() }
+      if (!error) {
+        setShowNewModal(false)
+        setForm({ borrower_first_name: '', borrower_last_name: '', borrower_email: '', loan_amount: '', loan_purpose: '', loan_term: '12' })
+        setDocFile(null); setDocUrl('')
+        fetchApps()
+      }
     } catch (err) { console.error('submitNewApp error:', err) }
     setSaving(false)
   }
@@ -400,8 +422,25 @@ export default function LenderApplicationsPage() {
                 ))}
               </div>
             </div>
+            {/* Document Upload */}
+            <div className="border-t border-neutral-100 pt-3">
+              <label className="block text-xs font-medium text-neutral-700 mb-1.5">Supporting Document (optional)</label>
+              <label className="flex items-center gap-2 px-3 py-2.5 border border-dashed border-neutral-300 rounded-lg cursor-pointer hover:border-cashub-400 hover:bg-cashub-50 transition-colors">
+                <Upload className="w-4 h-4 text-neutral-400" />
+                <span className="text-sm text-neutral-500">{docFile ? docFile.name : 'Upload payslip, ID, bank statement...'}</span>
+                <input type="file" className="hidden" accept="image/*,.pdf,.doc,.docx"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) { setDocFile(f); setDocUrl('') } }} />
+              </label>
+              {docFile && (
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="flex items-center gap-1.5 text-xs text-emerald-600"><Paperclip className="w-3 h-3" />{docFile.name}</span>
+                  <button onClick={() => { setDocFile(null); setDocUrl('') }} className="text-xs text-red-400 hover:text-red-600">Remove</button>
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-3 pt-2">
-              <button onClick={() => { setShowNewModal(false); setBorrowerSearch(''); setBorrowerResults([]); setAutofillMsg('') }} className="flex-1 px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 rounded-lg text-sm font-medium">Cancel</button>
+              <button onClick={() => { setShowNewModal(false); setBorrowerSearch(''); setBorrowerResults([]); setAutofillMsg(''); setDocFile(null); setDocUrl('') }} className="flex-1 px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 rounded-lg text-sm font-medium">Cancel</button>
               <button onClick={submitNewApp} disabled={saving} className="flex-1 px-4 py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50">
                 {saving ? 'Submitting...' : 'Submit Application'}
               </button>
