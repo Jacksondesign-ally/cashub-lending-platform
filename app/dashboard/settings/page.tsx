@@ -61,8 +61,21 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setCurrentLocale(getLocale())
-    const saved = localStorage.getItem('loginSlides')
-    if (saved) { try { setLoginSlides(JSON.parse(saved)) } catch (err) { console.error('Settings slides parse error:', err) } }
+    // Load from DB first (authoritative), fallback to localStorage
+    supabase.from('system_settings').select('value').eq('key', 'login_slides').maybeSingle().then(({ data }) => {
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value)
+          if (parsed?.length) {
+            setLoginSlides(parsed)
+            localStorage.setItem('loginSlides', data.value)
+            return
+          }
+        } catch {}
+      }
+      const saved = localStorage.getItem('loginSlides')
+      if (saved) { try { setLoginSlides(JSON.parse(saved)) } catch (err) { console.error('Settings slides parse error:', err) } }
+    })
   }, [])
 
   // Admin user management state
@@ -1008,23 +1021,33 @@ export default function SettingsPage() {
                               if (!file) return
                               setSlideUploading(idx)
                               try {
+                                // Upload to Supabase Storage
+                                const ext = file.name.split('.').pop()
+                                const path = `slides/slide-${Date.now()}-${idx}.${ext}`
+                                const { error: upErr } = await supabase.storage.from('branding').upload(path, file, { upsert: true })
+                                if (upErr) throw upErr
+                                const { data: urlData } = supabase.storage.from('branding').getPublicUrl(path)
+                                setLoginSlides(prev => prev.map((s, i) => i === idx ? { ...s, image: urlData.publicUrl } : s))
+                              } catch {
+                                // Fallback to base64 if storage bucket not available
                                 const reader = new FileReader()
                                 reader.onload = (ev) => {
                                   const base64 = ev.target?.result as string
                                   setLoginSlides(prev => prev.map((s, i) => i === idx ? { ...s, image: base64 } : s))
-                                  setSlideUploading(null)
                                 }
                                 reader.readAsDataURL(file)
-                              } catch { setSlideUploading(null) }
+                              } finally {
+                                setSlideUploading(null)
+                              }
                             }
                             input.click()
                           }}
                           className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-lg text-xs font-medium text-neutral-700 disabled:opacity-50">
                           <Upload className="w-3.5 h-3.5" />
-                          {slideUploading === idx ? 'Loading...' : 'Upload'}
+                          {slideUploading === idx ? 'Uploading...' : 'Upload'}
                         </button>
                       </div>
-                      {slide.image?.startsWith('data:') && (
+                      {slide.image && (
                         <img src={slide.image} alt="preview" className="mt-2 h-16 w-full object-cover rounded-lg" />
                       )}
                     </div>
@@ -1067,13 +1090,9 @@ export default function SettingsPage() {
                   localStorage.setItem('loginSlides', json)
                   // Persist to DB so login page shows custom images on all devices
                   try {
-                    const { data: existing } = await supabase.from('system_settings').select('id').eq('key', 'login_slides').maybeSingle()
-                    if (existing?.id) {
-                      await supabase.from('system_settings').update({ value: json }).eq('key', 'login_slides')
-                    } else {
-                      await supabase.from('system_settings').insert({ key: 'login_slides', value: json })
-                    }
-                  } catch {}
+                    const { error: upsertErr } = await supabase.from('system_settings').upsert({ key: 'login_slides', value: json }, { onConflict: 'key' })
+                    if (upsertErr) console.error('Slide save error:', upsertErr.message)
+                  } catch (err) { console.error('Slide save exception:', err) }
                   setSlideSaving(false)
                 }}
                 disabled={slideSaving}
