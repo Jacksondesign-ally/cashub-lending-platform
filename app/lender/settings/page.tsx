@@ -72,22 +72,33 @@ export default function LenderSettingsPage() {
     const file = e.target.files?.[0]
     if (!file) return
     setLogoUploading(true)
-    const reader = new FileReader()
-    reader.onload = async (ev) => {
-      const base64 = ev.target?.result as string
-      setLogoUrl(base64)
-      localStorage.setItem('lenderLogo', base64)
-      // Save to Supabase if lender record exists
-      try {
-        const userEmail = localStorage.getItem('userName') || ''
-        const { data: existing } = await supabase.from('lenders').select('id').eq('email', userEmail).maybeSingle()
-        if (existing) {
-          await supabase.from('lenders').update({ logo_url: base64 }).eq('id', existing.id)
-        }
-      } catch { /* fallback to localStorage only */ }
+    try {
+      const lenderId = localStorage.getItem('lenderId') || 'unknown'
+      const ext = file.name.split('.').pop()
+      const path = `logos/${lenderId}-${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage.from('lender-docs').upload(path, file, { upsert: true })
+      if (upErr) throw upErr
+      const { data: urlData } = supabase.storage.from('lender-docs').getPublicUrl(path)
+      const publicUrl = urlData.publicUrl
+      setLogoUrl(publicUrl)
+      localStorage.setItem('lenderLogo', publicUrl)
+      const userEmail = localStorage.getItem('userName') || ''
+      const { data: existing } = await supabase.from('lenders').select('id').eq('email', userEmail).maybeSingle()
+      if (existing) {
+        await supabase.from('lenders').update({ logo_url: publicUrl }).eq('id', existing.id)
+      }
+    } catch {
+      // Fallback to base64 if storage unavailable
+      const reader = new FileReader()
+      reader.onload = async (ev) => {
+        const base64 = ev.target?.result as string
+        setLogoUrl(base64)
+        localStorage.setItem('lenderLogo', base64)
+      }
+      reader.readAsDataURL(file)
+    } finally {
       setLogoUploading(false)
     }
-    reader.readAsDataURL(file)
   }
 
   const handleSave = async () => {
@@ -154,15 +165,35 @@ export default function LenderSettingsPage() {
     c.getContext('2d')!.clearRect(0, 0, c.width, c.height)
     setSigHasDraw(false)
   }
-  const saveSigDrawing = () => {
+  const saveSigDrawing = async () => {
     const c = sigCanvasRef.current; if (!c) return
-    setSigSignatureUrl(c.toDataURL('image/png'))
+    try {
+      const lenderId = localStorage.getItem('lenderId') || 'unknown'
+      const path = `signatures/${lenderId}-${Date.now()}.png`
+      const blob = await new Promise<Blob>(res => c.toBlob(b => res(b!), 'image/png'))
+      const { error: upErr } = await supabase.storage.from('lender-docs').upload(path, blob, { upsert: true, contentType: 'image/png' })
+      if (upErr) throw upErr
+      const { data: urlData } = supabase.storage.from('lender-docs').getPublicUrl(path)
+      setSigSignatureUrl(urlData.publicUrl)
+    } catch {
+      setSigSignatureUrl(c.toDataURL('image/png'))
+    }
   }
-  const handleSigUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSigUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
-    const reader = new FileReader()
-    reader.onload = ev => setSigSignatureUrl(ev.target?.result as string)
-    reader.readAsDataURL(file)
+    try {
+      const lenderId = localStorage.getItem('lenderId') || 'unknown'
+      const ext = file.name.split('.').pop()
+      const path = `signatures/${lenderId}-${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage.from('lender-docs').upload(path, file, { upsert: true })
+      if (upErr) throw upErr
+      const { data: urlData } = supabase.storage.from('lender-docs').getPublicUrl(path)
+      setSigSignatureUrl(urlData.publicUrl)
+    } catch {
+      const reader = new FileReader()
+      reader.onload = ev => setSigSignatureUrl(ev.target?.result as string)
+      reader.readAsDataURL(file)
+    }
   }
 
   const fields = [

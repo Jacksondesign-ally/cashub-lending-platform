@@ -278,6 +278,35 @@ function SignupContent() {
         console.error('User insert error:', userErr.message)
       }
 
+      // Upload lender signature to contracts bucket
+      let finalSigUrl = sigDataUrl || null
+      if (isLender && sigDataUrl) {
+        try {
+          const blob = await fetch(sigDataUrl).then(r => r.blob())
+          const sigPath = `signatures/${userId}-${Date.now()}.png`
+          const { error: sigUpErr } = await supabase.storage.from('contracts').upload(sigPath, blob, { upsert: true, contentType: 'image/png' })
+          if (!sigUpErr) {
+            const { data: sigUrlData } = supabase.storage.from('contracts').getPublicUrl(sigPath)
+            finalSigUrl = sigUrlData.publicUrl
+          }
+        } catch { /* keep base64 fallback */ }
+      }
+
+      // Upload borrower photo to borrower-docs bucket
+      let finalPhotoUrl = borrowerPhoto || null
+      if (!isLender && borrowerPhoto) {
+        try {
+          const blob = await fetch(borrowerPhoto).then(r => r.blob())
+          const ext = borrowerPhoto.startsWith('data:image/png') ? 'png' : 'jpg'
+          const photoPath = `photos/${userId}-${Date.now()}.${ext}`
+          const { error: photoUpErr } = await supabase.storage.from('borrower-docs').upload(photoPath, blob, { upsert: true, contentType: `image/${ext}` })
+          if (!photoUpErr) {
+            const { data: photoUrlData } = supabase.storage.from('borrower-docs').getPublicUrl(photoPath)
+            finalPhotoUrl = photoUrlData.publicUrl
+          }
+        } catch { /* keep base64 fallback */ }
+      }
+
       if (isLender) {
         const displayName = companyName || fullName
 
@@ -317,7 +346,7 @@ function SignupContent() {
           authorized_signatory_id: signatoryId || null,
           authorized_signatory_title: signatoryTitle || null,
           late_payment_percentage: latePaymentPercentage ? parseFloat(latePaymentPercentage) : 5,
-          signature_url: sigDataUrl || null,
+          signature_url: finalSigUrl,
           is_active: false,
         }).select('id, company_name').single()
         
@@ -337,7 +366,7 @@ function SignupContent() {
           email: userEmail,
           phone: phone || '',
           id_number: idNumber || null,
-          photo_url: borrowerPhoto || null,
+          photo_url: finalPhotoUrl,
           postal_address: postalAddress || null,
           address: residentialAddress || null,
           marital_status: maritalStatus || null,
