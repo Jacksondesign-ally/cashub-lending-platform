@@ -55,6 +55,7 @@ export default function SettingsPage() {
   ])
   const [slideSaving, setSlideSaving] = useState(false)
   const [slideUploading, setSlideUploading] = useState<number | null>(null)
+  const [slideSaveMsg, setSlideSaveMsg] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [saving, setSaving] = useState(false)
   const [currentLocale, setCurrentLocale] = useState<Locale>('en')
@@ -1082,17 +1083,32 @@ export default function SettingsPage() {
                 </button>
               )}
             </div>
+            {slideSaveMsg && (
+              <p className={`text-xs font-medium ${slideSaveMsg.startsWith('✓') ? 'text-emerald-600' : 'text-red-600'}`}>
+                {slideSaveMsg}
+              </p>
+            )}
             <div className="flex justify-end">
               <button
                 onClick={async () => {
                   setSlideSaving(true)
+                  setSlideSaveMsg('')
                   const json = JSON.stringify(loginSlides)
                   localStorage.setItem('loginSlides', json)
                   // Persist to DB so login page shows custom images on all devices
                   try {
                     const { error: upsertErr } = await supabase.from('system_settings').upsert({ key: 'login_slides', value: json }, { onConflict: 'key' })
-                    if (upsertErr) console.error('Slide save error:', upsertErr.message)
-                  } catch (err) { console.error('Slide save exception:', err) }
+                    if (upsertErr) {
+                      console.error('Slide save error:', upsertErr)
+                      setSlideSaveMsg(`❌ Error: ${upsertErr.message}`)
+                    } else {
+                      setSlideSaveMsg('✓ Slides saved successfully!')
+                      setTimeout(() => setSlideSaveMsg(''), 4000)
+                    }
+                  } catch (err: any) {
+                    console.error('Slide save exception:', err)
+                    setSlideSaveMsg(`❌ Exception: ${err.message || 'Unknown error'}`)
+                  }
                   setSlideSaving(false)
                 }}
                 disabled={slideSaving}
