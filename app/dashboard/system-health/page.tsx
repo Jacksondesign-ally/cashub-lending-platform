@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import {
   CheckCircle, XCircle, AlertTriangle, RefreshCw, Database, Shield, Users,
   FileText, CreditCard, Building, Trash2, Activity, Link, AlertCircle,
@@ -63,6 +63,20 @@ export default function SystemHealthPage() {
   useEffect(() => {
     setRole(typeof window !== 'undefined' ? localStorage.getItem('userRole') : null)
   }, [])
+
+  // Check if Supabase is configured
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <div className="bg-white rounded-2xl border border-red-200 shadow-sm p-12 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-red-900 mb-2">Supabase Not Configured</h3>
+          <p className="text-red-700 mb-4">Environment variables NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required.</p>
+          <p className="text-red-600 text-sm">Please check your Vercel environment variables configuration.</p>
+        </div>
+      </div>
+    )
+  }
 
   /* ──────────── run audit ──────────── */
   const runAudit = useCallback(async () => {
