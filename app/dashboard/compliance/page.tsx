@@ -109,7 +109,7 @@ export default function CompliancePage() {
       const { data: lendersData } = await supabase
         .from('lenders')
         .select('id, legal_name, registration_number')
-        .eq('is_active', true)
+        .eq('status', 'active')
         .order('legal_name')
       setLenderOptions(lendersData || [])
     } catch (error) {
@@ -125,21 +125,15 @@ export default function CompliancePage() {
     try {
       const quarter = newReport.report_quarter
       const year = newReport.report_year
-      const reportNumber = `NAMFISA-${year}-Q${quarter}-${newReport.lender_id.slice(0, 6).toUpperCase()}`
+      const reportPeriod = `${year}-Q${quarter}`
       const { error } = await supabase.from('namfisa_reports').insert({
         lender_id: newReport.lender_id,
-        report_number: reportNumber,
-        report_year: year,
-        report_quarter: quarter,
-        total_loans: parseInt(newReport.total_loans) || 0,
-        total_portfolio: parseFloat(newReport.total_portfolio) || 0,
-        default_rate: parseFloat(newReport.default_rate) || 0,
-        collection_rate: parseFloat(newReport.collection_rate) || 0,
-        new_borrowers: parseInt(newReport.new_borrowers) || 0,
-        active_borrowers: parseInt(newReport.active_borrowers) || 0,
+        report_type: 'quarterly',
+        report_period: reportPeriod,
         status: 'submitted',
-        submission_date: new Date().toISOString(),
-        is_locked: false,
+        submitted_at: new Date().toISOString(),
+        due_date: new Date(year, quarter * 3, 0).toISOString().split('T')[0],
+        notes: `Total Loans: ${newReport.total_loans}, Portfolio: N$${newReport.total_portfolio}, Default Rate: ${newReport.default_rate}%, Collection Rate: ${newReport.collection_rate}%, New Borrowers: ${newReport.new_borrowers}, Active Borrowers: ${newReport.active_borrowers}`,
       })
       if (error) throw error
       setShowNewReport(false)

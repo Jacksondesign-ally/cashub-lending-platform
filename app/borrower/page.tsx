@@ -202,8 +202,8 @@ export default function BorrowerPortalPage() {
             monthly_income: borrowerRec.monthly_income || 0,
             member_since: borrowerRec.created_at ? new Date(borrowerRec.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '',
           })
-          // KYC is complete only when id_number exists AND profile photo uploaded
-          const hasPhoto = !!localStorage.getItem(`borrowerAvatar_${email}`)
+          // KYC is complete when id_number exists AND photo_url in DB (or local avatar)
+          const hasPhoto = !!(borrowerRec as any).photo_url || !!localStorage.getItem(`borrowerAvatar_${email}`)
           setKycComplete(!!(borrowerRec.id_number && hasPhoto))
         } else {
           setKycComplete(false)
@@ -287,7 +287,7 @@ export default function BorrowerPortalPage() {
             rating: l.rating || 4.5,
             total_loans: l.total_loans || 0,
             approval_rate: l.approval_rate || 85,
-            avg_interest_rate: l.average_interest_rate || 15,
+            avg_interest_rate: l.avg_interest_rate || l.average_interest_rate || 15,
             min_amount: l.min_loan_amount || 500,
             max_amount: l.max_loan_amount || 50000,
             response_time: l.response_time || '24 hours',
@@ -381,8 +381,8 @@ export default function BorrowerPortalPage() {
       const { data: bData } = await supabase.from('borrowers').select('id, id_number, credit_score, risk_level, status').eq('email', userEmail).maybeSingle()
       update('registry', bData ? 'pass' : 'warn', bData ? `Registered (${bData.status})` : 'Not in shared registry — will be added on submission')
       const borrowerIdNumber = bData?.id_number || ''
-      const { data: blData } = await supabase.from('blacklist').select('id, status').or(`id_number.eq.${borrowerIdNumber},full_name.ilike.%${userName}%`).limit(5)
-      const hasBlacklist = blData && blData.some((b: any) => b.status === 'approved')
+      const { data: blData } = await supabase.from('borrower_blacklist').select('id, status').or(`borrower_id.eq.${bData?.id || '00000000-0000-0000-0000-000000000000'},borrower_email.eq.${userEmail}`).limit(5)
+      const hasBlacklist = blData && blData.some((b: any) => b.status === 'active')
       update('blacklist', hasBlacklist ? 'fail' : 'pass', hasBlacklist ? 'Active blacklist entry found!' : 'No blacklist entries')
       const { data: scamData } = await supabase.from('scam_alerts').select('id').or(`suspect_id.eq.${borrowerIdNumber},suspect_name.ilike.%${userName}%`).limit(5)
       update('scam', scamData && scamData.length > 0 ? 'warn' : 'pass', scamData && scamData.length > 0 ? 'Scam alert associated with this account' : 'No scam/fraud alerts')

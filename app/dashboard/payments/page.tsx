@@ -10,6 +10,7 @@ import {
 
 interface LoanRecord {
   id: string
+  loanUuid: string
   borrower: string
   borrowerId: string
   phone: string
@@ -73,6 +74,7 @@ export default function PaymentsPage() {
           const overdue = l.status === 'defaulted' ? 30 : 0
           return {
             id: l.loan_number || l.id,
+            loanUuid: l.id,
             borrower: l.borrower ? `${l.borrower.first_name} ${l.borrower.last_name}` : 'Unknown',
             borrowerId: l.borrower_id || '',
             phone: l.borrower?.phone || '',
@@ -143,7 +145,7 @@ export default function PaymentsPage() {
     // Try to insert into Supabase
     try {
       await supabase.from('payments').insert({
-        loan_id: selectedLoan!.id,
+        loan_id: selectedLoan!.loanUuid,
         borrower_name: selectedLoan!.borrower,
         amount,
         payment_method: methodName,
