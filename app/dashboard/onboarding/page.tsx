@@ -88,6 +88,34 @@ const PACKAGE_INFO: Record<PackageTier, { name: string; price: number; color: st
 }
 
 
+interface LenderContract {
+  id: string
+  lender_id: string
+  legal_name: string
+  registration_number: string
+  authorized_rep: string
+  position_title: string
+  business_email: string
+  business_phone: string
+  business_address: string
+  bank_name: string
+  account_holder: string
+  account_number: string
+  account_type: string
+  billing_frequency: string
+  subscription_amount: number
+  signatory_name: string
+  signatory_title: string
+  signature_url: string
+  signed_at: string
+  status: 'pending' | 'under_review' | 'approved' | 'rejected'
+  rejection_reason?: string
+  reviewed_by?: string
+  reviewed_at?: string
+  agreement_version: string
+  created_at: string
+}
+
 export default function LenderOnboardingPage() {
   const [requests, setRequests] = useState<LenderRequest[]>([])
   const [loading, setLoading] = useState(true)
@@ -103,16 +131,62 @@ export default function LenderOnboardingPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
+  const [activeTab, setActiveTab] = useState<'onboarding' | 'contracts'>('onboarding')
+  const [contracts, setContracts] = useState<LenderContract[]>([])
+  const [contractsLoading, setContractsLoading] = useState(false)
+  const [expandedContractId, setExpandedContractId] = useState<string | null>(null)
+  const [contractActionId, setContractActionId] = useState<string | null>(null)
+  const [contractRejectReason, setContractRejectReason] = useState('')
+  const [contractActionLoading, setContractActionLoading] = useState(false)
 
   useEffect(() => {
     const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null
     if (role === 'super_admin' || role === 'admin') {
       setAllowed(true)
       fetchRequests()
+      fetchContracts()
     } else {
       setAllowed(false)
     }
   }, [])
+
+  const fetchContracts = async () => {
+    setContractsLoading(true)
+    try {
+      const { data } = await supabase.from('lender_contracts').select('*').order('created_at', { ascending: false })
+      setContracts((data || []) as LenderContract[])
+    } catch { setContracts([]) }
+    setContractsLoading(false)
+  }
+
+  const handleContractAction = async (contractId: string, action: 'approve' | 'reject' | 'under_review') => {
+    setContractActionLoading(true)
+    try {
+      const reviewer = localStorage.getItem('userName') || 'Super Admin'
+      await supabase.from('lender_contracts').update({
+        status: action,
+        reviewed_by: reviewer,
+        reviewed_at: new Date().toISOString(),
+        rejection_reason: action === 'reject' ? contractRejectReason : null,
+        updated_at: new Date().toISOString(),
+      }).eq('id', contractId)
+      if (action === 'approved') {
+        const contract = contracts.find(c => c.id === contractId)
+        if (contract?.lender_id) {
+          await supabase.from('lenders').update({ is_active: true }).eq('id', contract.lender_id)
+        }
+      }
+      setContracts(prev => prev.map(c => c.id === contractId ? {
+        ...c, status: action as any,
+        reviewed_by: reviewer,
+        reviewed_at: new Date().toISOString(),
+        rejection_reason: action === 'reject' ? contractRejectReason : c.rejection_reason,
+      } : c))
+      setContractActionId(null)
+      setContractRejectReason('')
+    } catch (e: any) { alert('Error: ' + e.message) }
+    setContractActionLoading(false)
+  }
 
   const syncLenderNames = async () => {
     setSyncing(true)
@@ -285,6 +359,8 @@ export default function LenderOnboardingPage() {
     )
   }
 
+  const pendingContracts = contracts.filter(c => c.status === 'pending' || c.status === 'under_review').length
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -300,8 +376,203 @@ export default function LenderOnboardingPage() {
           <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-medium">
             {stats.underReview} In Review
           </span>
+          {pendingContracts > 0 && (
+            <span className="text-xs bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full font-medium">
+              {pendingContracts} Contract{pendingContracts !== 1 ? 's' : ''} Pending
+            </span>
+          )}
         </div>
       </div>
+
+      {/* Tab navigation */}
+      <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl w-fit">
+        {([
+          { id: 'onboarding', label: 'Lender Onboarding', count: stats.pending },
+          { id: 'contracts',  label: 'Platform Contracts', count: pendingContracts },
+        ] as const).map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}>
+            {tab.label}
+            {tab.count > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{tab.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ══════════ CONTRACTS TAB ══════════ */}
+      {activeTab === 'contracts' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-neutral-500">{contracts.length} total contract{contracts.length !== 1 ? 's' : ''} submitted</p>
+            <button onClick={fetchContracts} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-neutral-200 rounded-lg text-xs text-neutral-600 hover:bg-neutral-50">
+              <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            </button>
+          </div>
+
+          {contractsLoading ? (
+            <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cashub-600" /></div>
+          ) : contracts.length === 0 ? (
+            <div className="bg-white rounded-xl border border-neutral-200 p-12 text-center">
+              <FileText className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
+              <p className="text-neutral-500">No lender contracts submitted yet.</p>
+            </div>
+          ) : contracts.map(contract => {
+            const isExpanded = expandedContractId === contract.id
+            const statusColor = contract.status === 'approved' ? 'bg-green-100 text-green-700 border-green-200'
+              : contract.status === 'rejected' ? 'bg-red-100 text-red-700 border-red-200'
+              : contract.status === 'under_review' ? 'bg-blue-100 text-blue-700 border-blue-200'
+              : 'bg-yellow-100 text-yellow-700 border-yellow-200'
+            const isActioning = contractActionId === contract.id
+            return (
+              <div key={contract.id} className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+                <div className="p-5 flex items-start justify-between cursor-pointer" onClick={() => setExpandedContractId(isExpanded ? null : contract.id)}>
+                  <div className="flex items-start gap-4">
+                    <div className="w-11 h-11 bg-gradient-to-br from-red-700 to-red-900 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <span className="text-base font-bold text-white">{(contract.legal_name || 'L').charAt(0)}</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-bold text-neutral-900">{contract.legal_name || 'Unknown Lender'}</h3>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusColor}`}>
+                          {contract.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                        <span className="text-[10px] text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded">{contract.agreement_version}</span>
+                      </div>
+                      <p className="text-xs text-neutral-500 mt-0.5">{contract.business_email} • {contract.business_phone}</p>
+                      <p className="text-[10px] text-neutral-400 mt-0.5">Signed by: {contract.signatory_name} ({contract.signatory_title}) • {contract.signed_at ? new Date(contract.signed_at).toLocaleDateString('en-NA') : '—'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-neutral-400">{new Date(contract.created_at).toLocaleDateString()}</span>
+                    {isExpanded ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <div className="border-t border-neutral-100 bg-neutral-50/50 p-5 space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                      {/* Company Details */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-bold text-neutral-700 uppercase tracking-wide">Company Details</h4>
+                        {[
+                          ['Legal Name', contract.legal_name],
+                          ['Reg. Number', contract.registration_number],
+                          ['Auth. Rep', contract.authorized_rep],
+                          ['Title', contract.position_title],
+                          ['Email', contract.business_email],
+                          ['Phone', contract.business_phone],
+                          ['Address', contract.business_address],
+                        ].map(([k, v]) => (
+                          <div key={k} className="flex justify-between text-xs">
+                            <span className="text-neutral-500">{k}</span>
+                            <span className="font-medium text-neutral-900 text-right max-w-[180px] truncate">{v || '—'}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Bank Details */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-bold text-neutral-700 uppercase tracking-wide">Bank Authorization</h4>
+                        {[
+                          ['Bank', contract.bank_name],
+                          ['Account Holder', contract.account_holder],
+                          ['Account No.', contract.account_number],
+                          ['Account Type', contract.account_type],
+                          ['Billing', contract.billing_frequency],
+                          ['Amount (N$)', contract.subscription_amount ? `N$ ${Number(contract.subscription_amount).toLocaleString()}` : '—'],
+                        ].map(([k, v]) => (
+                          <div key={k} className="flex justify-between text-xs">
+                            <span className="text-neutral-500">{k}</span>
+                            <span className="font-medium text-neutral-900 text-right">{v || '—'}</span>
+                          </div>
+                        ))}
+                        {/* Signature preview */}
+                        {contract.signature_url && (
+                          <div className="mt-3 pt-3 border-t border-neutral-200">
+                            <p className="text-[10px] text-neutral-500 mb-1">Digital Signature:</p>
+                            {contract.signature_url.startsWith('typed:') ? (
+                              <p className="text-base font-['cursive'] italic text-neutral-800 border-b border-neutral-300 pb-1">
+                                {contract.signature_url.replace('typed:', '')}
+                              </p>
+                            ) : (
+                              <img src={contract.signature_url} alt="Signature" className="h-12 object-contain border-b border-neutral-300" />
+                            )}
+                            <p className="text-[10px] text-neutral-400 mt-0.5">{contract.signatory_name}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="space-y-3">
+                        <h4 className="text-xs font-bold text-neutral-700 uppercase tracking-wide">Admin Actions</h4>
+                        {contract.reviewed_by && (
+                          <div className="text-xs text-neutral-500">
+                            Reviewed by <strong>{contract.reviewed_by}</strong><br />
+                            {contract.reviewed_at && new Date(contract.reviewed_at).toLocaleString('en-NA')}
+                          </div>
+                        )}
+                        {contract.rejection_reason && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-xs text-red-700">
+                            <strong>Rejection Reason:</strong> {contract.rejection_reason}
+                          </div>
+                        )}
+
+                        {(contract.status === 'pending' || contract.status === 'under_review' || contract.status === 'rejected') && (
+                          <div className="space-y-2">
+                            <button onClick={() => handleContractAction(contract.id, 'approve')}
+                              disabled={contractActionLoading}
+                              className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
+                              <CheckCircle className="w-3.5 h-3.5" /> Approve Contract & Activate Portal
+                            </button>
+                            {contract.status === 'pending' && (
+                              <button onClick={() => handleContractAction(contract.id, 'under_review')}
+                                disabled={contractActionLoading}
+                                className="w-full py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
+                                <Eye className="w-3.5 h-3.5" /> Mark Under Review
+                              </button>
+                            )}
+                            {isActioning ? (
+                              <div className="space-y-2">
+                                <textarea value={contractRejectReason} onChange={e => setContractRejectReason(e.target.value)}
+                                  rows={2} placeholder="Rejection reason..."
+                                  className="w-full px-2 py-1.5 border border-red-300 rounded-lg text-xs focus:ring-1 focus:ring-red-400 resize-none" />
+                                <div className="flex gap-2">
+                                  <button onClick={() => { setContractActionId(null); setContractRejectReason('') }}
+                                    className="flex-1 py-1.5 bg-neutral-100 rounded-lg text-xs font-medium">Cancel</button>
+                                  <button onClick={() => handleContractAction(contract.id, 'reject')}
+                                    disabled={!contractRejectReason.trim() || contractActionLoading}
+                                    className="flex-1 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold disabled:opacity-40">
+                                    Confirm Reject
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button onClick={() => setContractActionId(contract.id)}
+                                className="w-full py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
+                                <XCircle className="w-3.5 h-3.5" /> Reject Contract
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {contract.status === 'approved' && (
+                          <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                            <CheckCircle className="w-6 h-6 text-green-600 mx-auto mb-1" />
+                            <p className="text-xs font-semibold text-green-700">Contract Approved</p>
+                            <p className="text-[10px] text-green-600">Portal access granted</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {activeTab === 'onboarding' && (<>
 
       {/* Workflow Steps */}
       <div className="bg-gradient-to-r from-cashub-50 to-violet-50 border border-cashub-100 rounded-2xl p-5">
@@ -630,6 +901,7 @@ export default function LenderOnboardingPage() {
           </div>
         </div>
       )}
+      </>)}
     </div>
   )
 }

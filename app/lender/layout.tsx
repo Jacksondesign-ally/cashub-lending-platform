@@ -33,6 +33,7 @@ const lenderMenu = [
   { id: 'invite-lender', name: 'Invite Lender',       href: '/lender/invite-lender', icon: Mail,     color: 'text-violet-600', bg: 'bg-violet-50' },
   { id: 'branches',      name: 'Branches',            href: '/lender/branches',      icon: Building, color: 'text-indigo-600', bg: 'bg-indigo-50' },
   { id: 'settings',      name: 'Settings',            href: '/lender/settings',      icon: Settings, color: 'text-gray-600',   bg: 'bg-gray-50' },
+  { id: 'contract',      name: 'Platform Contract',   href: '/lender/contract',      icon: FileText, color: 'text-red-700',   bg: 'bg-red-50' },
 ]
 
 export default function LenderLayout({ children }: { children: React.ReactNode }) {
@@ -94,6 +95,26 @@ export default function LenderLayout({ children }: { children: React.ReactNode }
         if (company) { localStorage.setItem('lenderCompany', company); setCompanyName(company) }
         if (email && !localStorage.getItem('userName')?.includes('@')) {
           localStorage.setItem('userName', email)
+        }
+        // Check contract status — gate portal unless on exempt pages
+        const currentPath = window.location.pathname
+        const contractExempt = ['/lender/contract', '/lender/pending-approval', '/login'].some(p => currentPath.startsWith(p))
+        if (!contractExempt) {
+          const { data: contract } = await supabase
+            .from('lender_contracts')
+            .select('status')
+            .eq('lender_id', data.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (!contract || contract.status === 'rejected' || contract.status === 'pending' || contract.status === 'under_review') {
+            if (!contract || contract.status === 'rejected') {
+              router.push('/lender/contract')
+            } else {
+              router.push('/lender/contract')
+            }
+            return
+          }
         }
         if (data.is_active === false) {
           router.push('/lender/pending-approval')
