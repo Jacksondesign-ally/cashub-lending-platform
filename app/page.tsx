@@ -6,8 +6,9 @@ import Link from 'next/link'
 import {
   CheckCircle, Users, FileText, Shield, BarChart3, Building,
   Globe, ArrowRight, Star, Zap, Crown, Menu, X, Phone, Mail,
-  MapPin, ChevronDown, TrendingUp, Lock, RefreshCw, BookOpen,
-  Banknote, Store, AlertTriangle, CreditCard, Award
+  MapPin, ChevronDown, TrendingUp, Lock, BookOpen,
+  Banknote, Store, AlertTriangle, CreditCard, Award,
+  ChevronLeft, ChevronRight
 } from 'lucide-react'
 
 const COUNTRIES = [
@@ -59,15 +60,58 @@ const STATS = [
   { label: 'Platform Uptime', value: '99.9%', icon: TrendingUp },
 ]
 
+const SLIDES = [
+  {
+    image: '/slides/slide-man.jpg',
+    tag: 'People-First Platform',
+    title: 'Built for the People Behind the Loans',
+    subtitle: 'CasHuB empowers lenders across Southern Africa with smart tools, compliance support, and real-time insights.',
+    cta: 'Start Free Trial',
+    ctaHref: '/signup',
+  },
+  {
+    image: '/slides/slide-van.jpg',
+    tag: 'CasHuB On The Move',
+    title: 'Serving Lenders Across Southern Africa',
+    subtitle: 'From Windhoek to Johannesburg to Gaborone — CasHuB is your on-the-ground lending partner wherever you operate.',
+    cta: 'See Coverage',
+    ctaHref: '#countries',
+  },
+  {
+    image: '/slides/slide-windhoek.jpg',
+    tag: 'Proudly Namibian',
+    title: 'Headquartered in Windhoek, Built for the Region',
+    subtitle: 'Designed to meet NAMFISA, NBFIRA, and NCR regulatory requirements with local expertise and dedicated support.',
+    cta: 'Explore Features',
+    ctaHref: '#features',
+  },
+  {
+    image: '/slides/slide-desert.jpg',
+    tag: 'African Built. African Proud.',
+    title: 'A Platform as Resilient as the African Landscape',
+    subtitle: 'CasHuB is built to handle the demands of the Southern African lending market — robust, secure, and always available.',
+    cta: 'Get Started',
+    ctaHref: '/signup',
+  },
+]
+
 export default function MarketingPage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [slideIndex, setSlideIndex] = useState(0)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSlideIndex(prev => (prev + 1) % SLIDES.length)
+    }, 6000)
+    return () => clearInterval(timer)
   }, [])
 
   return (
@@ -107,72 +151,74 @@ export default function MarketingPage() {
         )}
       </nav>
 
-      {/* ── HERO ── */}
-      <section className="relative min-h-screen flex items-center bg-gradient-to-br from-red-950 via-red-900 to-neutral-900 overflow-hidden pt-16">
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 25% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 75% 80%, #fff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
-        <div className="relative max-w-7xl mx-auto px-6 py-24 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-sm text-white/80">
-              <Globe className="w-3.5 h-3.5" />
-              Operating in Namibia, South Africa &amp; Botswana
-            </div>
-            <h1 className="text-5xl lg:text-6xl font-black text-white leading-tight">
-              Southern Africa&apos;s<br />
-              <span className="text-red-300">Trusted Lending</span><br />
-              Platform
-            </h1>
-            <p className="text-lg text-white/70 max-w-lg leading-relaxed">
-              CasHuB is a complete micro-lending management platform built for registered lenders. Manage borrowers, loans, compliance, and growth — all in one powerful system.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/signup" className="flex items-center gap-2 px-8 py-4 bg-white text-red-900 font-bold rounded-2xl hover:bg-red-50 transition-all shadow-lg text-base">
-                Start Free Trial <ArrowRight className="w-4 h-4" />
-              </Link>
-              <a href="#features" className="flex items-center gap-2 px-8 py-4 border-2 border-white/30 text-white font-semibold rounded-2xl hover:bg-white/10 transition-all text-base">
-                See Features
-              </a>
-            </div>
-            <div className="flex items-center gap-6 pt-2">
-              {['NAMFISA Compliant', 'NBFIRA Ready', 'NCR Compatible'].map(b => (
-                <div key={b} className="flex items-center gap-1.5 text-white/70 text-xs">
-                  <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" /> {b}
-                </div>
-              ))}
-            </div>
+      {/* ── HERO SLIDESHOW ── */}
+      <section className="relative min-h-screen overflow-hidden">
+        {/* Slides */}
+        {SLIDES.map((slide, i) => (
+          <div key={i} className={`absolute inset-0 transition-opacity duration-1000 ${i === slideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+            <Image src={slide.image} alt={slide.title} fill className="object-cover object-center" priority={i === 0} />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-black/20" />
           </div>
+        ))}
 
-          {/* Dashboard Preview */}
-          <div className="hidden lg:block">
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-6 space-y-4">
-              <div className="flex items-center gap-3 mb-2">
-                <Image src="/cashub-icon.svg" alt="CasHuB" width={28} height={28} className="rounded-lg" />
-                <span className="text-white font-bold text-sm">CasHuB Dashboard</span>
-                <span className="ml-auto flex gap-1.5">{[1,2,3].map(i => <span key={i} className="w-3 h-3 rounded-full bg-white/30" />)}</span>
-              </div>
-              {[
-                { label: 'Active Loans', value: '1,247', change: '+12%', color: 'text-green-400' },
-                { label: 'Total Disbursed', value: 'N$ 4.2M', change: '+8%', color: 'text-blue-400' },
-                { label: 'Repayment Rate', value: '94.3%', change: '+2%', color: 'text-green-400' },
-                { label: 'Active Borrowers', value: '3,891', change: '+18%', color: 'text-purple-400' },
-              ].map(s => (
-                <div key={s.label} className="bg-white/10 rounded-xl p-3 flex items-center justify-between">
-                  <span className="text-white/70 text-xs">{s.label}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white font-bold text-sm">{s.value}</span>
-                    <span className={`text-[10px] font-semibold ${s.color}`}>{s.change}</span>
+        {/* Slide Content */}
+        <div className="relative z-20 min-h-screen flex flex-col justify-center pt-20 pb-28">
+          <div className="max-w-7xl mx-auto px-6 w-full">
+            {SLIDES.map((slide, i) => (
+              <div key={i} className={`transition-all duration-700 ${i === slideIndex ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 absolute'}`}>
+                {i === slideIndex && (
+                  <div className="max-w-2xl space-y-6">
+                    <span className="inline-flex items-center gap-2 bg-white/10 border border-white/25 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm text-white/90 font-medium">
+                      <Globe className="w-3.5 h-3.5 text-orange-400" /> {slide.tag}
+                    </span>
+                    <h1 className="text-4xl lg:text-6xl font-black text-white leading-tight drop-shadow-lg">{slide.title}</h1>
+                    <p className="text-lg text-white/80 leading-relaxed max-w-xl">{slide.subtitle}</p>
+                    <div className="flex flex-wrap gap-4 pt-2">
+                      <Link href={slide.ctaHref} className="flex items-center gap-2 px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl transition-all shadow-xl text-base">
+                        {slide.cta} <ArrowRight className="w-4 h-4" />
+                      </Link>
+                      <Link href="/login" className="flex items-center gap-2 px-8 py-4 border-2 border-white/40 text-white font-semibold rounded-2xl hover:bg-white/10 transition-all text-base backdrop-blur-sm">
+                        Sign In
+                      </Link>
+                    </div>
+                    <div className="flex items-center gap-6 pt-1">
+                      {['NAMFISA Compliant', 'NBFIRA Ready', 'NCR Compatible'].map(b => (
+                        <div key={b} className="flex items-center gap-1.5 text-white/70 text-xs">
+                          <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" /> {b}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
+        {/* Prev / Next arrows */}
+        <button onClick={() => setSlideIndex(p => (p - 1 + SLIDES.length) % SLIDES.length)}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-12 h-12 bg-black/30 hover:bg-black/60 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center text-white transition-all">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <button onClick={() => setSlideIndex(p => (p + 1) % SLIDES.length)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-12 h-12 bg-black/30 hover:bg-black/60 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center text-white transition-all">
+          <ChevronRight className="w-5 h-5" />
+        </button>
+
+        {/* Slide dots */}
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 flex gap-2">
+          {SLIDES.map((_, i) => (
+            <button key={i} onClick={() => setSlideIndex(i)}
+              className={`transition-all rounded-full ${i === slideIndex ? 'w-8 h-2.5 bg-orange-500' : 'w-2.5 h-2.5 bg-white/40 hover:bg-white/70'}`} />
+          ))}
+        </div>
+
         {/* Stats bar */}
-        <div className="absolute bottom-0 inset-x-0 bg-black/30 backdrop-blur-sm border-t border-white/10">
+        <div className="absolute bottom-0 inset-x-0 z-30 bg-black/50 backdrop-blur-sm border-t border-white/10">
           <div className="max-w-7xl mx-auto px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-4">
             {STATS.map(s => (
               <div key={s.label} className="flex items-center gap-3">
-                <s.icon className="w-5 h-5 text-red-300 flex-shrink-0" />
+                <s.icon className="w-5 h-5 text-orange-400 flex-shrink-0" />
                 <div>
                   <p className="text-white font-bold text-lg leading-none">{s.value}</p>
                   <p className="text-white/50 text-xs mt-0.5">{s.label}</p>
@@ -249,6 +295,54 @@ export default function MarketingPage() {
                 {i < 3 && <div className="hidden md:block absolute top-1/2 -right-3 w-6 h-0.5 bg-red-500/40" />}
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── BANNER ── */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-orange-50 to-red-50 border border-orange-100">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-center min-h-[400px]">
+              {/* Banner Image */}
+              <div className="relative flex items-center justify-center p-8 lg:p-12">
+                <div className="relative w-full max-w-xs mx-auto">
+                  <Image src="/slides/banner.jpg" alt="CasHuB - Know the Borrower Before You Approve" width={380} height={560} className="object-contain rounded-2xl shadow-2xl" />
+                </div>
+              </div>
+              {/* Banner Text */}
+              <div className="p-8 lg:p-12 space-y-6">
+                <span className="inline-block bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide">CasHuB Platform</span>
+                <h2 className="text-3xl lg:text-4xl font-black text-neutral-900 leading-tight">
+                  Know the Borrower<br /><span className="text-orange-600">Before You Approve.</span>
+                </h2>
+                <p className="text-neutral-600 leading-relaxed">CasHuB is a digital microlender platform for lenders and borrowers — built for verification, compliance, and risk management across Southern Africa.</p>
+                <div className="space-y-3">
+                  {[
+                    { title: 'Shared Registry', desc: 'View borrower obligations across lenders' },
+                    { title: 'Blacklist & Scam Alert', desc: 'Flag high-risk borrowers and detect fraud' },
+                    { title: 'Credit Score & Risk Insights', desc: 'Analyze borrower risks and worthiness' },
+                    { title: 'NAMFISA Compliance Reports', desc: 'Automated reports for regulatory compliance' },
+                  ].map(f => (
+                    <div key={f.title} className="flex items-start gap-3">
+                      <CheckCircle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-sm font-semibold text-neutral-800">{f.title}</span>
+                        <span className="text-sm text-neutral-500"> — {f.desc}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <Link href="/signup" className="flex items-center gap-2 px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-all text-sm">
+                    Get Started <ArrowRight className="w-4 h-4" />
+                  </Link>
+                  <a href="https://www.cashub.co.za" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-6 py-3 border-2 border-orange-300 text-orange-700 font-semibold rounded-xl hover:bg-orange-50 transition-all text-sm">
+                    www.cashub.co.za
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
