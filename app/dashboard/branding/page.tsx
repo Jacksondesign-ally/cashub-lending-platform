@@ -52,16 +52,15 @@ export default function BrandingPage() {
         }
       } catch {}
     }
-    // Also try to load from DB
-    supabase.from('system_settings').select('value').eq('key', 'login_slides').maybeSingle().then(({ data }) => {
-      if (data?.value) {
-        try {
-          const parsed = JSON.parse(data.value)
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setSlides(parsed.map((s: any, i: number) => ({ ...s, id: s.id || String(i + 1) })))
-          }
-        } catch {}
-      }
+    // Also try to load from DB (silently ignore if table doesn't exist)
+    supabase.from('system_settings').select('value').eq('key', 'login_slides').maybeSingle().then(({ data, error }) => {
+      if (error || !data?.value) return
+      try {
+        const parsed = JSON.parse(data.value)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSlides(parsed.map((s: any, i: number) => ({ ...s, id: s.id || String(i + 1) })))
+        }
+      } catch {}
     })
   }, [])
 
@@ -104,27 +103,21 @@ export default function BrandingPage() {
       const slidesData = JSON.stringify(cleanSlides)
       localStorage.setItem('loginSlides', slidesData)
 
-      // Check if record exists, then insert or update accordingly
-      const { data: existing } = await supabase
-        .from('system_settings')
-        .select('id')
-        .eq('key', 'login_slides')
-        .maybeSingle()
-
-      if (existing?.id) {
-        const { error: updateErr } = await supabase
+      // Try to persist to DB — silently skip if table doesn't exist
+      try {
+        const { data: existing } = await supabase
           .from('system_settings')
-          .update({ value: slidesData })
+          .select('id')
           .eq('key', 'login_slides')
-        if (updateErr) throw updateErr
-      } else {
-        const { error: insertErr } = await supabase
-          .from('system_settings')
-          .insert({ key: 'login_slides', value: slidesData })
-        if (insertErr) throw insertErr
-      }
+          .maybeSingle()
 
-      // Check if any slides still have blob URLs (storage not configured)
+        if (existing?.id) {
+          await supabase.from('system_settings').update({ value: slidesData }).eq('key', 'login_slides')
+        } else {
+          await supabase.from('system_settings').insert({ key: 'login_slides', value: slidesData })
+        }
+      } catch {}
+
       const hasBlobUrls = slides.some(s => s.image.startsWith('blob:'))
       if (hasBlobUrls) {
         setError('⚠ Some images were uploaded without persistent storage. Set up the Supabase "branding" storage bucket so images survive across sessions. Slide text/titles were saved.')
@@ -133,7 +126,7 @@ export default function BrandingPage() {
         setTimeout(() => setSaved(false), 3000)
       }
     } catch (err: any) {
-      setError(err.message || 'Error saving slides to database')
+      setError(err.message || 'Error saving slides')
     }
     setSaving(false)
   }

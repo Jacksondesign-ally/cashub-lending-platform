@@ -101,6 +101,8 @@ export default function LenderOnboardingPage() {
   const [actionReason, setActionReason] = useState('')
   const [actionSubmitting, setActionSubmitting] = useState(false)
   const [allowed, setAllowed] = useState<boolean | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState('')
 
   useEffect(() => {
     const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null
@@ -111,6 +113,31 @@ export default function LenderOnboardingPage() {
       setAllowed(false)
     }
   }, [])
+
+  const syncLenderNames = async () => {
+    setSyncing(true)
+    setSyncMsg('')
+    try {
+      const { data: onboarding } = await supabase
+        .from('lender_onboarding')
+        .select('email, company_name, legal_name')
+        .eq('status', 'approved')
+      if (!onboarding?.length) { setSyncMsg('No approved lenders to sync.'); setSyncing(false); return }
+      let updated = 0
+      for (const o of onboarding) {
+        const { error } = await supabase
+          .from('lenders')
+          .update({ company_name: o.company_name, legal_name: o.legal_name || o.company_name })
+          .eq('email', o.email)
+        if (!error) updated++
+      }
+      setSyncMsg(`✓ Synced ${updated} of ${onboarding.length} lender names successfully.`)
+      setTimeout(() => setSyncMsg(''), 5000)
+    } catch (err: any) {
+      setSyncMsg(`Error: ${err.message}`)
+    }
+    setSyncing(false)
+  }
 
   const fetchRequests = async () => {
     setLoading(true)

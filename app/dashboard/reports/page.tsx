@@ -82,12 +82,24 @@ export default function ReportsAnalyticsPage() {
 
   useEffect(() => {
     fetchStats()
-  }, [])
+  }, [timeframe])
+
+  const getDateFilter = () => {
+    const now = new Date()
+    if (timeframe === 'week') { const d = new Date(now); d.setDate(d.getDate() - 7); return d.toISOString() }
+    if (timeframe === 'month') { const d = new Date(now); d.setMonth(d.getMonth() - 1); return d.toISOString() }
+    if (timeframe === 'quarter') { const d = new Date(now); d.setMonth(d.getMonth() - 3); return d.toISOString() }
+    if (timeframe === 'year') { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); return d.toISOString() }
+    return null
+  }
 
   const fetchStats = async () => {
     setLoading(true)
+    const dateFilter = getDateFilter()
     try {
-      const { data: loans } = await supabase.from('loans').select('principal_amount, outstanding_balance, status')
+      let loansQuery = supabase.from('loans').select('principal_amount, outstanding_balance, status, borrower_id')
+      if (dateFilter) loansQuery = loansQuery.gte('created_at', dateFilter)
+      const { data: loans } = await loansQuery
       const { data: borrowers } = await supabase.from('borrowers').select('id, status, risk_level')
 
       if (loans && loans.length > 0) {
@@ -142,19 +154,37 @@ export default function ReportsAnalyticsPage() {
         })))
       }
 
-      // Fetch top borrowers by credit score for performers
+      // Fetch top borrowers with real loan counts and values
       const { data: topData } = await supabase
         .from('borrowers')
-        .select('first_name, last_name, credit_score')
+        .select('id, first_name, last_name, credit_score')
         .order('credit_score', { ascending: false })
         .limit(5)
 
       if (topData && topData.length > 0) {
-        setTopPerformers(topData.map((b: any) => ({
-          name: `${b.first_name} ${b.last_name}`,
-          loans: 0, totalValue: 0, paymentRate: 0,
-          creditScore: b.credit_score || 0,
-        })))
+        const topIds = topData.map((b: any) => b.id)
+        const { data: topLoans } = await supabase
+          .from('loans')
+          .select('borrower_id, principal_amount, outstanding_balance, status')
+          .in('borrower_id', topIds)
+        const { data: topPayments } = await supabase
+          .from('payments')
+          .select('borrower_id, amount')
+          .in('borrower_id', topIds)
+        setTopPerformers(topData.map((b: any) => {
+          const bLoans = (topLoans || []).filter((l: any) => l.borrower_id === b.id)
+          const bPayments = (topPayments || []).filter((p: any) => p.borrower_id === b.id)
+          const totalValue = bLoans.reduce((s: number, l: any) => s + (l.principal_amount || 0), 0)
+          const totalPaid = bPayments.reduce((s: number, p: any) => s + (p.amount || 0), 0)
+          const paymentRate = totalValue > 0 ? Math.round((totalPaid / totalValue) * 100) : 0
+          return {
+            name: `${b.first_name} ${b.last_name}`,
+            loans: bLoans.length,
+            totalValue,
+            paymentRate,
+            creditScore: b.credit_score || 0,
+          }
+        }))
       }
     } catch (err) {
       console.error('Error fetching report stats:', err)

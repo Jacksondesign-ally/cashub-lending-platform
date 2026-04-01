@@ -89,8 +89,8 @@ export default function AdminMonitoringDashboard() {
         supabase.from('loans').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('loans').select('principal_amount').eq('status', 'active'),
         supabase.from('lender_subscriptions').select('amount').eq('status', 'ACTIVE'),
-        supabase.from('borrowers').select('*', { count: 'exact', head: true }).eq('kyc_status', 'pending'),
-        supabase.from('borrower_disputes').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+        supabase.from('borrower_documents').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('borrower_disputes').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('scam_alerts').select('*', { count: 'exact', head: true }).eq('status', 'active')
       ])
 
@@ -111,13 +111,14 @@ export default function AdminMonitoringDashboard() {
         scamAlerts: scamAlerts || 0
       })
 
-      // Simulate system health (in production, this would come from actual health checks)
+      // System health based on actual DB connectivity
+      const dbOk = totalLenders !== null && totalBorrowers !== null
       setHealth({
-        status: 'healthy',
-        apiLatency: Math.floor(Math.random() * 100) + 50,
-        databaseStatus: 'connected',
-        lastBackup: new Date(Date.now() - 86400000).toISOString(),
-        uptime: '99.9%'
+        status: dbOk ? 'healthy' : 'warning',
+        apiLatency: 0,
+        databaseStatus: dbOk ? 'connected' : 'degraded',
+        lastBackup: 'N/A',
+        uptime: 'N/A'
       })
 
       // Fetch recent activity

@@ -74,6 +74,7 @@ export default function BillingPage() {
   const [lenderPlansLoading, setLenderPlansLoading] = useState(false)
   const [assigningPlan, setAssigningPlan] = useState<{ lenderId: string; pkg: string } | null>(null)
   const [planAssigning, setPlanAssigning] = useState(false)
+  const [dynamicPackages, setDynamicPackages] = useState<SubscriptionPackage[] | null>(null)
 
   const fetchLenderPlans = async () => {
     setLenderPlansLoading(true)
@@ -132,62 +133,13 @@ export default function BillingPage() {
     setPlanAssigning(false)
   }
 
-  const allPackages: SubscriptionPackage[] = [
-    {
-      id: 'starter',
-      name: 'Starter',
-      price: 250,
-      duration: 30,
-      maxBorrowers: 50,
-      maxUsers: 2,
-      features: [
-        'Up to 50 active loans',
-        '2 loan officers',
-        'Basic reports',
-        'Shared registry access',
-        'Standard support'
-      ],
-      color: 'from-blue-500 to-blue-600',
-      icon: <Star className="w-6 h-6" />
-    },
-    {
-      id: 'professional',
-      name: 'Professional',
-      price: 350,
-      duration: 30,
-      maxBorrowers: 250,
-      maxUsers: 10,
-      features: [
-        'Up to 250 active loans',
-        '10 loan officers',
-        'Advanced reports & analytics',
-        'NAMFISA compliance exports',
-        'Marketplace access',
-        'Dispute participation'
-      ],
-      popular: true,
-      color: 'from-cashub-600 to-accent-500',
-      icon: <Zap className="w-6 h-6" />
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: 500,
-      duration: 30,
-      maxBorrowers: 0,
-      maxUsers: 0,
-      features: [
-        'Unlimited loans & staff',
-        'Full analytics suite',
-        'Priority support',
-        'Custom integrations',
-        'Multi-branch management',
-        'Dedicated account manager'
-      ],
-      color: 'from-violet-600 to-purple-700',
-      icon: <Crown className="w-6 h-6" />
-    }
+  const STATIC_PACKAGES: SubscriptionPackage[] = [
+    { id: 'starter',      name: 'Starter',      price: 250, duration: 30, maxBorrowers: 50,  maxUsers: 2,  features: ['Up to 50 active loans', '2 loan officers', 'Basic reports', 'Shared registry access', 'Standard support'], color: 'from-blue-500 to-blue-600',       icon: <Star className="w-6 h-6" /> },
+    { id: 'professional', name: 'Professional', price: 350, duration: 30, maxBorrowers: 250, maxUsers: 10, features: ['Up to 250 active loans', '10 loan officers', 'Advanced reports & analytics', 'NAMFISA compliance exports', 'Marketplace access'], popular: true, color: 'from-cashub-600 to-accent-500', icon: <Zap className="w-6 h-6" /> },
+    { id: 'enterprise',   name: 'Enterprise',   price: 500, duration: 30, maxBorrowers: 0,   maxUsers: 0,  features: ['Unlimited loans & staff', 'Full analytics suite', 'Priority support', 'Custom integrations', 'Multi-branch management', 'Dedicated account manager'], color: 'from-violet-600 to-purple-700',  icon: <Crown className="w-6 h-6" /> },
   ]
+
+  const allPackages: SubscriptionPackage[] = (dynamicPackages || STATIC_PACKAGES)
 
   const packages = packageOrder.map(id => allPackages.find(p => p.id === id)!).filter(Boolean)
 
@@ -212,6 +164,20 @@ export default function BillingPage() {
     } else {
       setAllowed(false)
     }
+    // Load admin-defined packages from DB
+    supabase.from('system_settings').select('value').eq('key', 'admin_packages').maybeSingle().then(({ data }) => {
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const ICONS: Record<string, React.ReactNode> = { starter: <Star className="w-6 h-6" />, professional: <Zap className="w-6 h-6" />, enterprise: <Crown className="w-6 h-6" /> }
+            const COLORS: Record<string, string> = { starter: 'from-blue-500 to-blue-600', professional: 'from-cashub-600 to-accent-500', enterprise: 'from-violet-600 to-purple-700' }
+            setDynamicPackages(parsed.map((p: any) => ({ id: p.id, name: p.name, price: p.price, duration: 30, maxBorrowers: p.maxBorrowers || 0, maxUsers: p.maxUsers || 0, features: p.features || [], popular: p.popular || false, color: COLORS[p.id] || 'from-gray-500 to-gray-600', icon: ICONS[p.id] || <Star className="w-6 h-6" /> })))
+            setPackageOrder(parsed.map((p: any) => p.id))
+          }
+        } catch {}
+      }
+    })
   }, [])
 
   const fetchSubscriptionData = async () => {

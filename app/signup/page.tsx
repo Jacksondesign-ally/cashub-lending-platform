@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Mail, Lock, User, Phone, AlertCircle, CheckCircle, Building, Shield, MapPin, FileText, CreditCard, ChevronRight, ChevronLeft, Star, Zap, Crown } from 'lucide-react'
+import { Mail, Lock, User, Phone, AlertCircle, CheckCircle, Building, Shield, MapPin, FileText, CreditCard, ChevronRight, ChevronLeft, Star, Zap, Crown, Camera, Upload, X } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
@@ -47,9 +47,9 @@ function SignupContent() {
   const registrationRole = ['lender', 'super_admin'].includes(roleParam) ? roleParam : 'borrower'
   const isLender = registrationRole === 'lender'
 
-  // Step management (lender has 3 steps, others have 1)
+  // Step management (lender has 4 steps, borrower has 5)
   const [step, setStep] = useState(1)
-  const totalSteps = isLender ? 3 : registrationRole === 'borrower' ? 5 : 1
+  const totalSteps = isLender ? 4 : registrationRole === 'borrower' ? 5 : 1
 
   // Step 1 - Account info
   const [fullName, setFullName] = useState('')
@@ -69,6 +69,23 @@ function SignupContent() {
   // Step 3 - Package (lender only)
   const [selectedPackage, setSelectedPackage] = useState('professional')
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
+
+  // Step 4 - Agreement info (lender only)
+  const [signatoryName, setSignatoryName] = useState('')
+  const [signatoryId, setSignatoryId] = useState('')
+  const [signatoryTitle, setSignatoryTitle] = useState('')
+  const [lenderPostalAddress, setLenderPostalAddress] = useState('')
+  const [latePaymentPercentage, setLatePaymentPercentage] = useState('5')
+  const sigCanvasRef = useRef<HTMLCanvasElement>(null)
+  const sigUploadRef = useRef<HTMLInputElement>(null)
+  const [sigIsDrawing, setSigIsDrawing] = useState(false)
+  const [sigDataUrl, setSigDataUrl] = useState('')
+  const [sigMode, setSigMode] = useState<'draw' | 'upload'>('draw')
+
+  // Borrower photo
+  const [borrowerPhoto, setBorrowerPhoto] = useState('')
+  const photoFileRef = useRef<HTMLInputElement>(null)
+  const photoCameraRef = useRef<HTMLInputElement>(null)
 
   // Borrower agreement fields (steps 2-5)
   const [idNumber, setIdNumber] = useState('')
@@ -103,6 +120,102 @@ function SignupContent() {
     if (!password || password.length < 6) return 'Password must be at least 6 characters'
     if (password !== confirmPassword) return 'Passwords do not match'
     return ''
+  }
+
+  const startSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = sigCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    setSigIsDrawing(true)
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY
+    ctx.beginPath()
+    ctx.moveTo((clientX - rect.left) * scaleX, (clientY - rect.top) * scaleY)
+  }
+  const drawSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!sigIsDrawing) return
+    const canvas = sigCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY
+    ctx.lineWidth = 2
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.strokeStyle = '#0f172a'
+    ctx.lineTo((clientX - rect.left) * scaleX, (clientY - rect.top) * scaleY)
+    ctx.stroke()
+  }
+  const stopSig = () => {
+    if (!sigIsDrawing) return
+    setSigIsDrawing(false)
+    const canvas = sigCanvasRef.current
+    if (canvas) setSigDataUrl(canvas.toDataURL('image/png'))
+  }
+  const clearSig = () => {
+    const canvas = sigCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    ctx?.clearRect(0, 0, canvas.width, canvas.height)
+    setSigDataUrl('')
+  }
+
+  const validateStep2Lender = () => {
+    if (!companyName.trim()) return 'Company name is required'
+    if (!registrationNumber.trim()) return 'Business registration number is required'
+    if (!namfisaLicense.trim()) return 'NAMFISA license number is required'
+    if (!address.trim()) return 'Address is required'
+    if (!city.trim()) return 'City is required'
+    return ''
+  }
+  const validateStep4Lender = () => {
+    if (!signatoryName.trim()) return 'Authorised signatory name is required'
+    if (!signatoryId.trim()) return 'Signatory ID number is required'
+    if (!signatoryTitle.trim()) return 'Title / Designation is required'
+    if (!lenderPostalAddress.trim()) return 'Postal address is required'
+    if (!sigDataUrl) return 'Please draw or upload your signature'
+    return ''
+  }
+  const validateStep2Borrower = () => {
+    if (!idNumber.trim()) return 'ID / Passport number is required'
+    if (!maritalStatus) return 'Marital status is required'
+    if (!postalAddress.trim()) return 'Postal address is required'
+    if (!residentialAddress.trim()) return 'Residential address is required'
+    return ''
+  }
+  const validateStep3Borrower = () => {
+    if (!occupation.trim()) return 'Occupation is required'
+    if (!employerName.trim()) return 'Employer name is required'
+    if (!employerTel.trim()) return 'Employer telephone is required'
+    return ''
+  }
+  const validateStep4Borrower = () => {
+    if (!bankName.trim()) return 'Bank name is required'
+    if (!bankAccountNo.trim()) return 'Account number is required'
+    if (!bankAccountType) return 'Account type is required'
+    return ''
+  }
+  const validateStep5Borrower = () => {
+    if (!reference1Name.trim()) return 'Reference 1 name is required'
+    if (!reference1Tel.trim()) return 'Reference 1 telephone is required'
+    return ''
+  }
+
+  const handlePhotoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    const r = new FileReader()
+    r.onload = ev => setBorrowerPhoto(ev.target?.result as string)
+    r.readAsDataURL(f)
+    e.target.value = ''
   }
 
   const handleNext = () => {
@@ -165,6 +278,35 @@ function SignupContent() {
         console.error('User insert error:', userErr.message)
       }
 
+      // Upload lender signature to contracts bucket
+      let finalSigUrl = sigDataUrl || null
+      if (isLender && sigDataUrl) {
+        try {
+          const blob = await fetch(sigDataUrl).then(r => r.blob())
+          const sigPath = `signatures/${userId}-${Date.now()}.png`
+          const { error: sigUpErr } = await supabase.storage.from('contracts').upload(sigPath, blob, { upsert: true, contentType: 'image/png' })
+          if (!sigUpErr) {
+            const { data: sigUrlData } = supabase.storage.from('contracts').getPublicUrl(sigPath)
+            finalSigUrl = sigUrlData.publicUrl
+          }
+        } catch { /* keep base64 fallback */ }
+      }
+
+      // Upload borrower photo to borrower-docs bucket
+      let finalPhotoUrl = borrowerPhoto || null
+      if (!isLender && borrowerPhoto) {
+        try {
+          const blob = await fetch(borrowerPhoto).then(r => r.blob())
+          const ext = borrowerPhoto.startsWith('data:image/png') ? 'png' : 'jpg'
+          const photoPath = `photos/${userId}-${Date.now()}.${ext}`
+          const { error: photoUpErr } = await supabase.storage.from('borrower-docs').upload(photoPath, blob, { upsert: true, contentType: `image/${ext}` })
+          if (!photoUpErr) {
+            const { data: photoUrlData } = supabase.storage.from('borrower-docs').getPublicUrl(photoPath)
+            finalPhotoUrl = photoUrlData.publicUrl
+          }
+        } catch { /* keep base64 fallback */ }
+      }
+
       if (isLender) {
         const displayName = companyName || fullName
 
@@ -199,6 +341,12 @@ function SignupContent() {
           email: userEmail,
           phone: phone || '',
           registration_number: registrationNumber || '',
+          postal_address: lenderPostalAddress || null,
+          authorized_signatory_name: signatoryName || null,
+          authorized_signatory_id: signatoryId || null,
+          authorized_signatory_title: signatoryTitle || null,
+          late_payment_percentage: latePaymentPercentage ? parseFloat(latePaymentPercentage) : 5,
+          signature_url: finalSigUrl,
           is_active: false,
         }).select('id, company_name').single()
         
@@ -218,6 +366,7 @@ function SignupContent() {
           email: userEmail,
           phone: phone || '',
           id_number: idNumber || null,
+          photo_url: finalPhotoUrl,
           postal_address: postalAddress || null,
           address: residentialAddress || null,
           marital_status: maritalStatus || null,
@@ -258,7 +407,7 @@ function SignupContent() {
     }
   }
 
-  const stepLabels = isLender ? ['Account', 'Company', 'Package'] : ['Account', 'Personal', 'Employment', 'Banking', 'References']
+  const stepLabels = isLender ? ['Account', 'Company', 'Package', 'Agreement'] : ['Account', 'Personal', 'Employment', 'Banking', 'References']
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cashub-600 via-cashub-700 to-emerald-800 flex items-center justify-center py-10 px-4 relative overflow-hidden">
@@ -321,25 +470,60 @@ function SignupContent() {
           {step === 2 && !isLender && registrationRole === 'borrower' && (
             <div className="space-y-4">
               <p className="text-xs text-neutral-500 font-medium">Personal Information — used to auto-fill your loan agreement</p>
+
+              {/* Hidden file inputs — must live in JSX for camera to work reliably on mobile */}
+              <input ref={photoFileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoFile} />
+              <input ref={photoCameraRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoFile} />
+
+              {/* Photo capture */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Profile Photo <span className="text-xs font-normal text-neutral-400">(optional)</span></label>
+                <div className="flex items-center gap-4">
+                  {borrowerPhoto ? (
+                    <div className="relative">
+                      <img src={borrowerPhoto} alt="Profile" className="w-16 h-16 rounded-full object-cover border-2 border-cashub-500" />
+                      <button type="button" onClick={() => setBorrowerPhoto('')} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center border-2 border-dashed border-neutral-300">
+                      <Camera className="w-6 h-6 text-neutral-400" />
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2">
+                    <button type="button" onClick={() => photoFileRef.current?.click()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 rounded-lg text-xs font-medium text-neutral-700">
+                      <Upload className="w-3.5 h-3.5" /> Upload Photo
+                    </button>
+                    <button type="button" onClick={() => photoCameraRef.current?.click()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-cashub-50 hover:bg-cashub-100 border border-cashub-200 rounded-lg text-xs font-medium text-cashub-700">
+                      <Camera className="w-3.5 h-3.5" /> Take Photo
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <Input icon={Shield} label="ID / Passport No" required type="text" value={idNumber} onChange={e => setIdNumber(e.target.value)} placeholder="e.g. 00010100123" />
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">Marital Status</label>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">Marital Status <span className="text-red-500">*</span></label>
                   <select value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)}
+                    style={{borderColor: maritalStatus ? '' : ''}}
                     className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-cashub-500 text-neutral-900">
                     <option value="">Select...</option>
                     <option>Single</option><option>Married</option><option>Divorced</option><option>Widowed</option>
                   </select>
                 </div>
               </div>
-              <Input icon={MapPin} label="Postal Address" type="text" value={postalAddress} onChange={e => setPostalAddress(e.target.value)} placeholder="P.O. Box 1234, Windhoek" />
-              <Input icon={MapPin} label="Residential Address" type="text" value={residentialAddress} onChange={e => setResidentialAddress(e.target.value)} placeholder="123 Main Street, Windhoek" />
+              <Input icon={MapPin} label="Postal Address" required type="text" value={postalAddress} onChange={e => setPostalAddress(e.target.value)} placeholder="P.O. Box 1234, Windhoek" />
+              <Input icon={MapPin} label="Residential Address" required type="text" value={residentialAddress} onChange={e => setResidentialAddress(e.target.value)} placeholder="123 Main Street, Windhoek" />
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => { setError(''); setStep(1) }}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-neutral-300 text-neutral-700 rounded-xl text-sm font-semibold hover:bg-neutral-50">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button type="button" onClick={() => { setError(''); setStep(3) }}
+                <button type="button" onClick={() => { const e = validateStep2Borrower(); if (e) { setError(e); return; } setError(''); setStep(3) }}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-xl text-sm font-semibold">
                   Continue <ChevronRight className="w-4 h-4" />
                 </button>
@@ -351,10 +535,10 @@ function SignupContent() {
           {step === 3 && !isLender && registrationRole === 'borrower' && (
             <div className="space-y-4">
               <p className="text-xs text-neutral-500 font-medium">Employment Details</p>
-              <Input icon={FileText} label="Occupation" type="text" value={occupation} onChange={e => setOccupation(e.target.value)} placeholder="e.g. Teacher, Nurse" />
-              <Input icon={Building} label="Employer Name" type="text" value={employerName} onChange={e => setEmployerName(e.target.value)} placeholder="e.g. Ministry of Education" />
+              <Input icon={FileText} label="Occupation" required type="text" value={occupation} onChange={e => setOccupation(e.target.value)} placeholder="e.g. Teacher, Nurse" />
+              <Input icon={Building} label="Employer Name" required type="text" value={employerName} onChange={e => setEmployerName(e.target.value)} placeholder="e.g. Ministry of Education" />
               <div className="grid grid-cols-2 gap-3">
-                <Input icon={Phone} label="Employer Tel" type="tel" value={employerTel} onChange={e => setEmployerTel(e.target.value)} placeholder="+264 61 000 0000" />
+                <Input icon={Phone} label="Employer Tel" required type="tel" value={employerTel} onChange={e => setEmployerTel(e.target.value)} placeholder="+264 61 000 0000" />
                 <Input icon={FileText} label="Payslip / Employee No" type="text" value={payslipEmployeeNo} onChange={e => setPayslipEmployeeNo(e.target.value)} placeholder="e.g. EMP12345" />
               </div>
               <Input icon={MapPin} label="Employer Address" type="text" value={employerAddress} onChange={e => setEmployerAddress(e.target.value)} placeholder="Employer street address" />
@@ -363,7 +547,7 @@ function SignupContent() {
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-neutral-300 text-neutral-700 rounded-xl text-sm font-semibold hover:bg-neutral-50">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button type="button" onClick={() => { setError(''); setStep(4) }}
+                <button type="button" onClick={() => { const e = validateStep3Borrower(); if (e) { setError(e); return; } setError(''); setStep(4) }}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-xl text-sm font-semibold">
                   Continue <ChevronRight className="w-4 h-4" />
                 </button>
@@ -376,12 +560,12 @@ function SignupContent() {
             <div className="space-y-4">
               <p className="text-xs text-neutral-500 font-medium">Banking Details</p>
               <div className="grid grid-cols-2 gap-3">
-                <Input icon={CreditCard} label="Bank Name" type="text" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. FNB, Standard Bank" />
+                <Input icon={CreditCard} label="Bank Name" required type="text" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. FNB, Standard Bank" />
                 <Input icon={CreditCard} label="Branch" type="text" value={bankBranch} onChange={e => setBankBranch(e.target.value)} placeholder="e.g. Windhoek" />
               </div>
-              <Input icon={CreditCard} label="Account Number" type="text" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} placeholder="Your bank account number" />
+              <Input icon={CreditCard} label="Account Number" required type="text" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} placeholder="Your bank account number" />
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Account Type</label>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Account Type <span className="text-red-500">*</span></label>
                 <select value={bankAccountType} onChange={e => setBankAccountType(e.target.value)}
                   className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-cashub-500 text-neutral-900">
                   <option value="">Select...</option>
@@ -393,7 +577,7 @@ function SignupContent() {
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-neutral-300 text-neutral-700 rounded-xl text-sm font-semibold hover:bg-neutral-50">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button type="button" onClick={() => { setError(''); setStep(5) }}
+                <button type="button" onClick={() => { const e = validateStep4Borrower(); if (e) { setError(e); return; } setError(''); setStep(5) }}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-xl text-sm font-semibold">
                   Continue <ChevronRight className="w-4 h-4" />
                 </button>
@@ -406,10 +590,10 @@ function SignupContent() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <p className="text-xs text-neutral-500 font-medium">Personal References</p>
               <div className="bg-neutral-50 rounded-xl p-4 space-y-3">
-                <p className="text-xs font-semibold text-neutral-700">Reference 1</p>
+                <p className="text-xs font-semibold text-neutral-700">Reference 1 <span className="text-red-500">*</span></p>
                 <div className="grid grid-cols-2 gap-3">
-                  <Input icon={User} label="Full Name" type="text" value={reference1Name} onChange={e => setReference1Name(e.target.value)} placeholder="Reference name" />
-                  <Input icon={Phone} label="Tel No" type="tel" value={reference1Tel} onChange={e => setReference1Tel(e.target.value)} placeholder="+264 81 000 0000" />
+                  <Input icon={User} label="Full Name" required type="text" value={reference1Name} onChange={e => setReference1Name(e.target.value)} placeholder="Reference name" />
+                  <Input icon={Phone} label="Tel No" required type="tel" value={reference1Tel} onChange={e => setReference1Tel(e.target.value)} placeholder="+264 81 000 0000" />
                 </div>
               </div>
               <div className="bg-neutral-50 rounded-xl p-4 space-y-3">
@@ -429,6 +613,7 @@ function SignupContent() {
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
                 <button type="submit" disabled={loading || !acceptedTerms}
+                  onClick={() => { const e = validateStep5Borrower(); if (e) { setError(e); } }}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-cashub-600 to-emerald-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50">
                   {loading ? 'Creating account...' : 'Complete Registration'}
                 </button>
@@ -441,11 +626,11 @@ function SignupContent() {
             <div className="space-y-4">
               <p className="text-xs text-neutral-500 mb-2">Tell us about your lending business</p>
               <Input icon={Building} label="Company / Business Name" required type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Your lending company name" />
-              <Input icon={FileText} label="Business Registration Number" type="text" value={registrationNumber} onChange={e => setRegistrationNumber(e.target.value)} placeholder="e.g. CC/2024/12345" />
-              <Input icon={Shield} label="NAMFISA License Number" type="text" value={namfisaLicense} onChange={e => setNamfisaLicense(e.target.value)} placeholder="NAMFISA micro-lending license" />
+              <Input icon={FileText} label="Business Registration Number" required type="text" value={registrationNumber} onChange={e => setRegistrationNumber(e.target.value)} placeholder="e.g. CC/2024/12345" />
+              <Input icon={Shield} label="NAMFISA License Number" required type="text" value={namfisaLicense} onChange={e => setNamfisaLicense(e.target.value)} placeholder="NAMFISA micro-lending license" />
               <div className="grid grid-cols-2 gap-3">
-                <Input icon={MapPin} label="Address" type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Street address" />
-                <Input icon={MapPin} label="City" type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="Windhoek" />
+                <Input icon={MapPin} label="Address" required type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Street address" />
+                <Input icon={MapPin} label="City" required type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="Windhoek" />
               </div>
               <Input icon={FileText} label="Years in Business" type="number" min="0" max="100" value={yearsInBusiness} onChange={e => setYearsInBusiness(e.target.value)} placeholder="e.g. 3" />
               <div className="flex gap-2 pt-1">
@@ -453,7 +638,7 @@ function SignupContent() {
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-neutral-300 text-neutral-700 rounded-xl text-sm font-semibold hover:bg-neutral-50">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button type="button" onClick={() => { setError(''); setStep(3) }}
+                <button type="button" onClick={() => { const e = validateStep2Lender(); if (e) { setError(e); return; } setError(''); setStep(3) }}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-xl text-sm font-semibold transition-all">
                   Continue <ChevronRight className="w-4 h-4" />
                 </button>
@@ -463,7 +648,7 @@ function SignupContent() {
 
           {/* ─── STEP 3: Package Selection (lender only) ─── */}
           {step === 3 && isLender && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
               <p className="text-xs text-neutral-500 mb-2">Choose a subscription plan to get started</p>
 
               {/* Billing Period Toggle */}
@@ -504,16 +689,109 @@ function SignupContent() {
                   </button>
                 )})}
               </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => { setError(''); setStep(2) }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-neutral-300 text-neutral-700 rounded-xl text-sm font-semibold hover:bg-neutral-50">
+                  <ChevronLeft className="w-4 h-4" /> Back
+                </button>
+                <button type="button" onClick={() => { setError(''); setStep(4) }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cashub-600 hover:bg-cashub-700 text-white rounded-xl text-sm font-semibold">
+                  Continue <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ─── STEP 4: Agreement Info (lender only) ─── */}
+          {step === 4 && isLender && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <p className="text-xs text-neutral-500 font-medium">Agreement &amp; Signatory Details — auto-fills your loan agreements</p>
+              <Input icon={User} label="Authorised Signatory Name" required type="text" value={signatoryName} onChange={e => setSignatoryName(e.target.value)} placeholder="Full name of authorised signatory" />
+              <div className="grid grid-cols-2 gap-3">
+                <Input icon={Shield} label="Signatory ID No" required type="text" value={signatoryId} onChange={e => setSignatoryId(e.target.value)} placeholder="ID / Passport number" />
+                <Input icon={FileText} label="Title / Designation" required type="text" value={signatoryTitle} onChange={e => setSignatoryTitle(e.target.value)} placeholder="e.g. Director, CEO" />
+              </div>
+              <Input icon={MapPin} label="Postal Address" required type="text" value={lenderPostalAddress} onChange={e => setLenderPostalAddress(e.target.value)} placeholder="P.O. Box 1234, Windhoek" />
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Late Payment Penalty (%)</label>
+                <input type="number" min="0" max="100" step="0.1" value={latePaymentPercentage}
+                  onChange={e => setLatePaymentPercentage(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-cashub-500" />
+                <p className="text-[11px] text-neutral-400 mt-1">Standard is 5% — this will appear on all your loan agreements</p>
+              </div>
+
+              {/* Signature — Draw or Upload */}
+              <input ref={sigUploadRef} type="file" accept="image/*" className="hidden" onChange={e => {
+                const f = e.target.files?.[0]; if (!f) return
+                const r = new FileReader(); r.onload = ev => setSigDataUrl(ev.target?.result as string); r.readAsDataURL(f)
+                e.target.value = ''
+              }} />
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-neutral-700">Authorised Signature <span className="text-red-500">*</span></label>
+                  <div className="flex items-center gap-1 bg-neutral-100 rounded-lg p-0.5">
+                    <button type="button" onClick={() => setSigMode('draw')}
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${sigMode === 'draw' ? 'bg-white shadow-sm text-neutral-900' : 'text-neutral-500'}`}>
+                      ✍ Draw
+                    </button>
+                    <button type="button" onClick={() => { setSigMode('upload'); sigUploadRef.current?.click() }}
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${sigMode === 'upload' ? 'bg-white shadow-sm text-neutral-900' : 'text-neutral-500'}`}>
+                      <Upload className="w-3 h-3 inline mr-1" />Upload
+                    </button>
+                  </div>
+                </div>
+                {sigMode === 'draw' ? (
+                  <div className="relative border-2 border-dashed border-neutral-300 rounded-xl bg-neutral-50 overflow-hidden" style={{height: '120px'}}>
+                    <canvas
+                      ref={sigCanvasRef}
+                      width={600}
+                      height={120}
+                      className="w-full h-full touch-none cursor-crosshair"
+                      onMouseDown={startSig}
+                      onMouseMove={drawSig}
+                      onMouseUp={stopSig}
+                      onMouseLeave={stopSig}
+                      onTouchStart={e => { e.preventDefault(); startSig(e) }}
+                      onTouchMove={e => { e.preventDefault(); drawSig(e) }}
+                      onTouchEnd={stopSig}
+                    />
+                    {!sigDataUrl && (
+                      <p className="absolute inset-0 flex items-center justify-center text-xs text-neutral-400 pointer-events-none select-none">✍ Sign here</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-neutral-300 rounded-xl bg-neutral-50 flex flex-col items-center justify-center" style={{height: '120px'}}>
+                    {sigDataUrl ? (
+                      <img src={sigDataUrl} alt="Signature" className="max-h-full max-w-full object-contain p-2" />
+                    ) : (
+                      <div className="text-center">
+                        <Upload className="w-6 h-6 text-neutral-400 mx-auto mb-1" />
+                        <p className="text-xs text-neutral-500">Click Upload above to select signature image</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-[11px] text-neutral-400">This signature will appear on all loan agreements</p>
+                  {sigDataUrl && (
+                    <button type="button" onClick={clearSig} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1">
+                      <X className="w-3 h-3" /> Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
                 <input id="terms-lender" type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} className="h-4 w-4 text-cashub-600 border-neutral-300 rounded" />
                 <label htmlFor="terms-lender" className="text-xs text-neutral-600">I accept the CasHuB terms, privacy policy and NAMFISA regulations</label>
               </div>
               <div className="flex gap-2">
-                <button type="button" onClick={() => { setError(''); setStep(2) }}
+                <button type="button" onClick={() => { setError(''); setStep(3) }}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-neutral-300 text-neutral-700 rounded-xl text-sm font-semibold hover:bg-neutral-50">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
                 <button type="submit" disabled={loading || !acceptedTerms}
+                  onClick={() => { const e = validateStep4Lender(); if (e) setError(e) }}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-cashub-600 to-emerald-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition-all">
                   {loading ? 'Submitting...' : 'Submit Application'}
                 </button>
