@@ -33,6 +33,7 @@ const lenderMenu = [
   { id: 'invite-lender', name: 'Invite Lender',       href: '/lender/invite-lender', icon: Mail,     color: 'text-violet-600', bg: 'bg-violet-50' },
   { id: 'branches',      name: 'Branches',            href: '/lender/branches',      icon: Building, color: 'text-indigo-600', bg: 'bg-indigo-50' },
   { id: 'settings',      name: 'Settings',            href: '/lender/settings',      icon: Settings, color: 'text-gray-600',   bg: 'bg-gray-50' },
+  { id: 'contract',      name: 'Platform Contract',   href: '/lender/contract',      icon: FileText, color: 'text-red-700',   bg: 'bg-red-50' },
 ]
 
 export default function LenderLayout({ children }: { children: React.ReactNode }) {
@@ -76,24 +77,43 @@ export default function LenderLayout({ children }: { children: React.ReactNode }
           localStorage.setItem('lastBlacklistCheck', new Date().toISOString())
         }
       })
-    // Always use the real auth session email to resolve lenderId reliably
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const email = session?.user?.email || (name.includes('@') ? name : null)
-      if (!email) return
-      supabase.from('lenders').select('id, company_name, is_active').eq('email', email).maybeSingle().then(({ data }) => {
-        if (data) {
-          localStorage.setItem('lenderId', data.id)
-          // Also store the real email as userName if it wasn't already
-          if (!localStorage.getItem('userName')?.includes('@')) {
-            localStorage.setItem('userName', email)
-          }
-          if (data.company_name) { localStorage.setItem('lenderCompany', data.company_name); setCompanyName(data.company_name) }
-          // Block portal access only if lender explicitly marked inactive
-          if (data.is_active === false) {
-            router.push('/lender/pending-approval')
+    // Resolve lenderId from auth session — user_id first, then email fallback
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session?.user) return
+      const userId = session.user.id
+      const email = session.user.email || (name.includes('@') ? name : null)
+      let { data } = await supabase.from('lenders').select('id, company_name, legal_name, is_active').eq('user_id', userId).maybeSingle()
+      if (!data && email) {
+        const { data: byEmail } = await supabase.from('lenders').select('id, company_name, legal_name, is_active').eq('email', email).maybeSingle()
+        data = byEmail
+      }
+      if (data) {
+        localStorage.setItem('lenderId', data.id)
+        const company = data.legal_name || data.company_name || ''
+        if (company) { localStorage.setItem('lenderCompany', company); setCompanyName(company) }
+        if (email && !localStorage.getItem('userName')?.includes('@')) {
+          localStorage.setItem('userName', email)
+        }
+        // Gate portal: redirect to contract page if no approved contract
+        const currentPath = window.location.pathname
+        const isExempt = ['/lender/contract', '/lender/pending-approval', '/login'].some(p => currentPath.startsWith(p))
+        if (!isExempt) {
+          const { data: contract } = await supabase
+            .from('lender_contracts')
+            .select('status')
+            .eq('lender_id', data.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (!contract || contract.status !== 'approved') {
+            router.push('/lender/contract')
+            return
           }
         }
-      })
+        if (data.is_active === false) {
+          router.push('/lender/pending-approval')
+        }
+      }
     })
   }, [])
 
@@ -101,6 +121,10 @@ export default function LenderLayout({ children }: { children: React.ReactNode }
     try { await supabase.auth.signOut() } catch { /* ignore */ }
     localStorage.removeItem('userRole')
     localStorage.removeItem('userName')
+    localStorage.removeItem('userEmail')
+    localStorage.removeItem('lenderId')
+    localStorage.removeItem('lenderCompany')
+    localStorage.removeItem('lastBlacklistCheck')
     router.push('/login')
   }
 

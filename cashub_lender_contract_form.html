@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CaShuB Lender Agreement Form</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      --primary: #b30000;
+      --primary-dark: #7a0000;
+      --light: #f8f8f8;
+      --border: #d9d9d9;
+      --text: #222;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f4f4;
+      color: var(--text);
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: white;
+      border-bottom: 2px solid var(--primary);
+      padding: 12px 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .toolbar .title {
+      font-weight: bold;
+      color: var(--primary-dark);
+    }
+
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn:hover { background: var(--primary-dark); }
+
+    .container {
+      max-width: 980px;
+      margin: 24px auto;
+      background: white;
+      padding: 32px;
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+
+    h1, h2, h3 {
+      color: var(--primary-dark);
+      margin-top: 0;
+    }
+
+    .brand {
+      border: 2px solid var(--primary);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 24px;
+      background: #fff7f7;
+    }
+
+    .muted { color: #666; font-size: 14px; }
+
+    .section {
+      margin-bottom: 26px;
+      page-break-inside: avoid;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+    }
+
+    textarea { min-height: 90px; resize: vertical; }
+
+    .contract-box {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      background: var(--light);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin: 10px 0;
+    }
+
+    .checkbox-row input {
+      width: auto;
+      margin-top: 4px;
+    }
+
+    .signature-box {
+      border: 1px dashed var(--border);
+      padding: 14px;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+
+    .footer-note {
+      margin-top: 24px;
+      font-size: 12px;
+      color: #666;
+      border-top: 1px solid #eee;
+      padding-top: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .grid, .grid-3 { grid-template-columns: 1fr; }
+      .container { padding: 18px; margin: 12px; }
+    }
+
+    @media print {
+      .toolbar { display: none; }
+      body { background: white; }
+      .container { box-shadow: none; margin: 0; max-width: 100%; border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="title">CaShuB Lender Contract & Bank Authorization</div>
+    <div>
+      <button class="btn" onclick="window.print()">Print</button>
+      <button class="btn" onclick="downloadPDF()">Download PDF</button>
+    </div>
+  </div>
+
+  <div class="container" id="contractDocument">
+    <div class="brand">
+      <h1>CaShuB Lender Subscription & Platform Participation Agreement</h1>
+      <p><strong>Legal Company Name:</strong> Xtreme Group Empire</p>
+      <p><strong>Trading / Platform Name:</strong> CaShuB</p>
+      <p class="muted">This agreement is between <strong>Xtreme Group Empire, herein trading as CaShuB</strong>, and the registered lender/subscriber.</p>
+    </div>
+
+    <div class="section">
+      <h2>1. Lender Information</h2>
+      <div class="grid">
+        <div class="field"><label>Lender Legal Name</label><input type="text" /></div>
+        <div class="field"><label>Registration Number</label><input type="text" /></div>
+        <div class="field"><label>Authorized Representative</label><input type="text" /></div>
+        <div class="field"><label>Position / Title</label><input type="text" /></div>
+        <div class="field"><label>Business Email</label><input type="email" /></div>
+        <div class="field"><label>Business Phone</label><input type="text" /></div>
+      </div>
+      <div class="field"><label>Business Address</label><textarea></textarea></div>
+    </div>
+
+    <div class="section">
+      <h2>2. Agreement Summary</h2>
+      <div class="contract-box">
+        <p>This Agreement is entered into between <strong>Xtreme Group Empire, herein as CaShuB</strong> (“CaShuB”), and the subscribing lending institution (“Lender”). CaShuB is a technology platform provider and shared lending ecosystem administrator. CaShuB does not originate loans, approve loans on behalf of lenders, or assume responsibility for the lender’s independent lending decisions.</p>
+        <p>The subscription term is <strong>twelve (12) months</strong> and shall <strong>automatically renew for successive 12-month periods</strong> unless either party gives written notice of non-renewal at least <strong>30 calendar days</strong> before the end of the current term.</p>
+        <p>The Lender agrees to use the platform lawfully, protect borrower data, comply with all applicable laws, and only use shared registry or blacklist tools in good faith and with lawful authority.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>3. Subscription & Auto-Renewal Acceptance</h2>
+      <div class="checkbox-row">
+        <input type="checkbox" />
+        <label>I confirm that I have read, understood, and agree to the CaShuB Lender Subscription & Platform Participation Agreement, including the 12-month automatic renewal terms.</label>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" />
+        <label>I confirm that the individual completing this form is duly authorized to bind the lender institution to this agreement.</label>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>4. Bank Authorization (Debit Order / Subscription Collection Consent)</h2>
+      <div class="contract-box">
+        <p>By completing this section, the Lender authorizes <strong>Xtreme Group Empire, herein as CaShuB</strong>, or its designated payment processor, to debit the lender’s nominated bank account for subscription fees, renewal fees, onboarding fees (if applicable), and any other approved platform charges under this agreement, subject to the selected package and invoicing terms.</p>
+        <p>This authority remains valid for the duration of the agreement and any renewal period, unless cancelled in writing in accordance with the agreement and subject to settlement of outstanding obligations.</p>
+      </div>
+
+      <div class="grid">
+        <div class="field"><label>Bank Name</label><input type="text" /></div>
+        <div class="field"><label>Branch Name</label><input type="text" /></div>
+        <div class="field"><label>Branch Code</label><input type="text" /></div>
+        <div class="field"><label>Account Holder Name</label><input type="text" /></div>
+        <div class="field"><label>Account Number</label><input type="text" /></div>
+        <div class="field"><label>Account Type</label>
+          <select>
+            <option>Cheque / Current</option>
+            <option>Savings</option>
+            <option>Business Account</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="field"><label>Billing Frequency</label>
+          <select>
+            <option>Monthly</option>
+            <option>Quarterly</option>
+            <option>Annually</option>
+          </select>
+        </div>
+        <div class="field"><label>Preferred Debit Date</label><input type="number" min="1" max="31" placeholder="e.g. 5" /></div>
+        <div class="field"><label>Package / Subscription Amount (N$)</label><input type="number" min="0" step="0.01" /></div>
+      </div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" />
+        <label>I authorize CaShuB to debit the above bank account for subscription and renewal charges in accordance with this agreement and approved invoices.</label>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>5. Required Supporting Documents</h2>
+      <div class="contract-box">
+        <ul>
+          <li>Company Registration Documents</li>
+          <li>Proof of Bank Account / Cancelled Cheque / Bank Confirmation Letter</li>
+          <li>ID of Authorized Representative</li>
+          <li>Regulatory / Lending License (if applicable)</li>
+          <li>Proof of Business Address</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>6. Digital Signature & Declaration</h2>
+      <div class="signature-box">
+        <div class="grid">
+          <div class="field"><label>Authorized Representative Full Name (Typed Signature)</label><input type="text" /></div>
+          <div class="field"><label>Date</label><input type="date" /></div>
+          <div class="field"><label>Position / Title</label><input type="text" /></div>
+          <div class="field"><label>Company Stamp / Notes (Optional)</label><input type="text" /></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>7. Internal CaShuB Use Only</h2>
+      <div class="grid-3">
+        <div class="field"><label>Agreement Version</label><input type="text" value="v1.0" /></div>
+        <div class="field"><label>Approval Status</label>
+          <select>
+            <option>Pending Review</option>
+            <option>Approved</option>
+            <option>Rejected</option>
+            <option>Suspended</option>
+          </select>
+        </div>
+        <div class="field"><label>Approved By</label><input type="text" /></div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      <strong>Legal Notice:</strong> This form is a professional operational draft for system onboarding. Before live use, it should be reviewed by a Namibian legal professional, especially for bank debit authorization, auto-renewal, data-sharing, and borrower registry clauses.
+    </div>
+  </div>
+
+  <script>
+    function downloadPDF() {
+      const element = document.getElementById('contractDocument');
+      const lenderName = document.querySelector('input')?.value?.trim() || 'Lender';
+      const opt = {
+        margin: 0.4,
+        filename: `CaShuB_Lender_Agreement_${lenderName.replace(/\s+/g, '_')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+  </script>
+</body>
+</html>
