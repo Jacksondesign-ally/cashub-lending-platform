@@ -76,24 +76,29 @@ export default function LenderLayout({ children }: { children: React.ReactNode }
           localStorage.setItem('lastBlacklistCheck', new Date().toISOString())
         }
       })
-    // Always use the real auth session email to resolve lenderId reliably
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const email = session?.user?.email || (name.includes('@') ? name : null)
-      if (!email) return
-      supabase.from('lenders').select('id, company_name, is_active').eq('email', email).maybeSingle().then(({ data }) => {
-        if (data) {
-          localStorage.setItem('lenderId', data.id)
-          // Also store the real email as userName if it wasn't already
-          if (!localStorage.getItem('userName')?.includes('@')) {
-            localStorage.setItem('userName', email)
-          }
-          if (data.company_name) { localStorage.setItem('lenderCompany', data.company_name); setCompanyName(data.company_name) }
-          // Block portal access only if lender explicitly marked inactive
-          if (data.is_active === false) {
-            router.push('/lender/pending-approval')
-          }
+    // Resolve lenderId from auth session — try user_id first, then email fallback
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session?.user) return
+      const userId = session.user.id
+      const email = session.user.email || (name.includes('@') ? name : null)
+      // Try by user_id first (reliable for new lenders)
+      let { data } = await supabase.from('lenders').select('id, company_name, legal_name, is_active').eq('user_id', userId).maybeSingle()
+      // Fall back to email match
+      if (!data && email) {
+        const { data: byEmail } = await supabase.from('lenders').select('id, company_name, legal_name, is_active').eq('email', email).maybeSingle()
+        data = byEmail
+      }
+      if (data) {
+        localStorage.setItem('lenderId', data.id)
+        const company = data.legal_name || data.company_name || ''
+        if (company) { localStorage.setItem('lenderCompany', company); setCompanyName(company) }
+        if (email && !localStorage.getItem('userName')?.includes('@')) {
+          localStorage.setItem('userName', email)
         }
-      })
+        if (data.is_active === false) {
+          router.push('/lender/pending-approval')
+        }
+      }
     })
   }, [])
 
@@ -101,6 +106,10 @@ export default function LenderLayout({ children }: { children: React.ReactNode }
     try { await supabase.auth.signOut() } catch { /* ignore */ }
     localStorage.removeItem('userRole')
     localStorage.removeItem('userName')
+    localStorage.removeItem('userEmail')
+    localStorage.removeItem('lenderId')
+    localStorage.removeItem('lenderCompany')
+    localStorage.removeItem('lastBlacklistCheck')
     router.push('/login')
   }
 

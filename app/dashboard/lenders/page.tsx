@@ -34,7 +34,12 @@ export default function LendersPage() {
   const ITEMS_PER_PAGE = 10
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  useEffect(() => { fetchLenders() }, [])
+  useEffect(() => {
+    fetchLenders()
+    const onFocus = () => fetchLenders()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [])
 
   const fetchLenders = async () => {
     setLoading(true)

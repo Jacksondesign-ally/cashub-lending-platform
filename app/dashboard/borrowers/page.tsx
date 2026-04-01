@@ -73,6 +73,9 @@ export default function BorrowersPage() {
     const saved = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('savedContacts') || '[]') : []
     setSavedContacts(saved)
     fetchBorrowers()
+    const onFocus = () => fetchBorrowers()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   }, [])
 
   const handleSaveContact = (borrowerId: string) => {

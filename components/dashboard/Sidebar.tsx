@@ -178,6 +178,10 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
                 } finally {
                   localStorage.removeItem('userRole')
                   localStorage.removeItem('userName')
+                  localStorage.removeItem('userEmail')
+                  localStorage.removeItem('lenderId')
+                  localStorage.removeItem('lenderCompany')
+                  localStorage.removeItem('lastBlacklistCheck')
                   router.push('/login')
                 }
               }}
