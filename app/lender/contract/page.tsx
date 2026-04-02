@@ -1,12 +1,12 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   FileText, CheckCircle, Download, Printer, RefreshCw, AlertCircle,
-  Clock, XCircle, Pen, Trash2
+  Clock, XCircle, Pen, Trash2, Lock, Info
 } from 'lucide-react'
 
 type SignMethod = 'draw' | 'type'
@@ -25,8 +25,10 @@ interface LenderInfo {
   authorized_signatory_title: string
 }
 
-export default function LenderContractPage() {
+function LenderContractContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectReason = searchParams.get('reason')
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasSignature, setHasSignature] = useState(false)
@@ -174,6 +176,26 @@ export default function LenderContractPage() {
     </div>
   )
 
+  const ReasonBanner = () => {
+    if (!redirectReason || redirectReason === 'pending') return null
+    if (contractStatus === 'approved') return null
+    const msgs: Record<string, { bg: string; icon: React.ReactNode; text: string }> = {
+      required: { bg: 'bg-orange-50 border-orange-300', icon: <Lock className="w-5 h-5 text-orange-600 flex-shrink-0" />, text: 'You must complete and sign this Platform Contract before you can access your CasHuB portal. Please fill in all fields, accept the terms, sign, and submit.' },
+      rejected: { bg: 'bg-red-50 border-red-300', icon: <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />, text: 'Your previous contract submission was rejected. Please review the reason below, correct the details, and resubmit.' },
+    }
+    const m = msgs[redirectReason]
+    if (!m) return null
+    return (
+      <div className={`no-print border-2 rounded-xl p-4 flex items-start gap-3 mb-6 ${m.bg}`}>
+        {m.icon}
+        <div>
+          <p className="font-bold text-sm text-neutral-900 mb-0.5">Contract Required to Access Portal</p>
+          <p className="text-sm text-neutral-700">{m.text}</p>
+        </div>
+      </div>
+    )
+  }
+
   if (contractStatus === 'approved') return (
     <div className="min-h-screen bg-neutral-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-lg p-10 max-w-md w-full text-center space-y-5">
@@ -244,6 +266,7 @@ export default function LenderContractPage() {
       )}
 
       <div className="max-w-4xl mx-auto my-6 px-4 pb-16" id="contractDocument">
+        <ReasonBanner />
         {/* Brand Header */}
         <div className="bg-white rounded-2xl shadow p-8 mb-5 border-2 border-red-800">
           <div className="flex items-start gap-6">
@@ -438,6 +461,14 @@ export default function LenderContractPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LenderContractPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-neutral-100 flex items-center justify-center"><RefreshCw className="w-8 h-8 text-cashub-600 animate-spin" /></div>}>
+      <LenderContractContent />
+    </Suspense>
   )
 }
 

@@ -106,7 +106,8 @@ export default function LenderLayout({ children }: { children: React.ReactNode }
             .limit(1)
             .maybeSingle()
           if (!contract || contract.status !== 'approved') {
-            router.push('/lender/contract')
+            const reason = !contract ? 'required' : contract.status === 'rejected' ? 'rejected' : 'pending'
+            router.push(`/lender/contract?reason=${reason}`)
             return
           }
         }

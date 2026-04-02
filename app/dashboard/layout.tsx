@@ -1,7 +1,9 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/dashboard/Sidebar'
+import { supabase } from '@/lib/supabase'
 import { Bell, User } from 'lucide-react'
 
 export default function DashboardLayout({
@@ -9,6 +11,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mounted, setMounted] = useState(false)
   
@@ -23,7 +26,22 @@ export default function DashboardLayout({
     const role = localStorage.getItem('userRole')
     const name = localStorage.getItem('userName')
 
-    if (!role || !name) return
+    // Redirect to login if not super_admin/admin
+    if (!role || !['super_admin', 'admin'].includes(role)) {
+      router.push('/login')
+      return
+    }
+
+    // Also verify active Supabase session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        localStorage.removeItem('userRole')
+        localStorage.removeItem('userName')
+        router.push('/login')
+      }
+    })
+
+    if (!name) return
 
     const roleLabels: Record<string, string> = {
       super_admin: 'Super Administrator',

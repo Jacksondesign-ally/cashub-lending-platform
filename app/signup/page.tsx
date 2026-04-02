@@ -43,7 +43,7 @@ function Input({ icon: Icon, label, required, ...props }: { icon: any; label: st
 function SignupContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const roleParam = searchParams.get('role') || 'borrower'
+  const roleParam = searchParams.get('role') || searchParams.get('type') || 'borrower'
   const registrationRole = ['lender', 'super_admin'].includes(roleParam) ? roleParam : 'borrower'
   const isLender = registrationRole === 'lender'
 
